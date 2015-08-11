@@ -1,0 +1,91 @@
+name: "embedding_model"
+
+layer {
+	name: "neighbor1"
+	type: "Data"
+	top: "neighbor1"
+}
+layer {
+	name: "neighbor2"
+	type: "Data"
+	top: "neighbor2"
+}
+layer {
+	name: "neighbor3"
+	type: "Data"
+	top: "neighbor3"
+}
+layer {
+	name: "neighbor4"
+	type: "Data"
+	top: "neighbor4"
+}
+layer {
+	name: "target"
+	type: "Data"
+	top: "target"
+}
+layer {
+	name: "negative"
+	type: "Data"
+	top: "negative"
+}
+
+layer {
+	name: "context_sum"
+	type: "Eltwise"
+	param {
+		type: "1" #SUM
+		coeff: 1,1,1,1
+	}
+	bottom: "neighbor1"
+	bottom: "neighbor2"
+	bottom: "neighbor3"
+	bottom: "neighbor4"
+	top: "context_sum"
+}
+
+layer {
+	name: "target_negative_diff"
+	type: "Eltwise"
+	param {
+		type: "1"	#Sum
+		coeff: 1, -1	# subtract the second input from the first one
+	}
+	bottom: "target"
+	bottom: "negative"
+	top: "target_negative_diff"
+}
+
+layer {
+	name: "embedding_function_context"
+	type: "InnerProduct"
+	bottom: "context_sum"
+	top: "embedding_function_context"
+	param {
+		name: "embed_w"
+		lr_mult: 1
+	}
+	param {
+		name: "embed_b"
+		lr_mult: 2
+	}
+}
+
+layer {
+	name: "embedding_function_target"
+	type: "InnerProduct"
+	bottom: "target_negative_diff"
+	top: "embedding_function_target"
+	param {
+		name: "embed_w"
+		lr_mult: 1
+	}
+	param {
+		name: "embed_b"
+		lr_mult: 2
+	}
+}
+
+
+
