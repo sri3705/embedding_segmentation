@@ -1,42 +1,32 @@
 name: "embedding_model"
+input: "data"
+input_dim: 4
+input_dim: 6
+input_dim: 1
+input_dim: 2
 
 layer {
-	name: "neighbor1"
-	type: "Data"
+	name: "slicer_data"
+	type: "Slice"
+	bottom: "data"
 	top: "neighbor1"
-}
-layer {
-	name: "neighbor2"
-	type: "Data"
 	top: "neighbor2"
-}
-layer {
-	name: "neighbor3"
-	type: "Data"
-	top: "neighbor3"
-}
-layer {
-	name: "neighbor4"
-	type: "Data"
+	top: "neighbor3" 
 	top: "neighbor4"
-}
-layer {
-	name: "target"
-	type: "Data"
 	top: "target"
-}
-layer {
-	name: "negative"
-	type: "Data"
 	top: "negative"
+
 }
 
 layer {
 	name: "context_sum"
 	type: "Eltwise"
-	param {
-		type: "1" #SUM
-		coeff: 1,1,1,1
+	eltwise_param {
+		operation: SUM
+		coeff: 0.25
+		coeff: 0.25
+		coeff: 0.25
+		coeff: 0.25
 	}
 	bottom: "neighbor1"
 	bottom: "neighbor2"
@@ -48,9 +38,10 @@ layer {
 layer {
 	name: "target_negative_diff"
 	type: "Eltwise"
-	param {
-		type: "1"	#Sum
-		coeff: 1, -1	# subtract the second input from the first one
+	eltwise_param {
+		operation: SUM
+		coeff: 1 
+		coeff: -1	# subtract the second input from the first one
 	}
 	bottom: "target"
 	bottom: "negative"
@@ -62,13 +53,18 @@ layer {
 	type: "InnerProduct"
 	bottom: "context_sum"
 	top: "embedding_function_context"
+	inner_product_param {
+		num_output: 2
+	}
 	param {
 		name: "embed_w"
 		lr_mult: 1
+                decay_mult: 1
 	}
 	param {
 		name: "embed_b"
 		lr_mult: 2
+                decay_mult: 0
 	}
 }
 
@@ -77,15 +73,35 @@ layer {
 	type: "InnerProduct"
 	bottom: "target_negative_diff"
 	top: "embedding_function_target"
+	inner_product_param {
+		num_output: 2
+	}
 	param {
 		name: "embed_w"
 		lr_mult: 1
+		decay_mult: 1
 	}
 	param {
 		name: "embed_b"
 		lr_mult: 2
+		decay_mult: 0
 	}
 }
+
+layer {
+	name: "loss"
+		type: "Python"
+	bottom: "embedding_function_context"
+	bottom: "embedding_function_target"
+	top: "loss"
+	python_param {
+		module: "my_dot_product_layer"
+		layer:  "MyHingLossDotProductLayer"				
+	}
+}
+
+
+
 
 
 
