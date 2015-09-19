@@ -145,7 +145,7 @@ for i in range(len(neighbors)):
 	
 	
 	segment = supervoxels[center_to_color[centers[neighbors[i]]]][0]
-	#print output.format(level, i)
+	print output.format(level, i)
 	saveSegment(segment, seg_path, seg_path, cmap(i+2))
 
 #segment = supervoxels[center_to_color[centers[5]]][0]
