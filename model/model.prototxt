@@ -1,0 +1,175 @@
+layer {
+  name: "dataLayer"
+  type: "HDF5Data"
+  top: "target"
+  top: "neighbor1"
+  top: "neighbor2"
+  top: "negative"
+  hdf5_data_param {
+    source: "/cs/vml3/mkhodaba/cvpr16/code/embedding_segmentation/dataset/dataset1.h5"
+    batch_size: 2
+  }
+}
+layer {
+  name: "inner_product_target"
+  type: "InnerProduct"
+  bottom: "target"
+  top: "inner_product_target"
+  param {
+    name: "embed_w"
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    name: "embed_b"
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 2
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "xavier"
+      value: 0.2
+    }
+  }
+}
+layer {
+  name: "inner_product_negative"
+  type: "InnerProduct"
+  bottom: "negative"
+  top: "inner_product_negative"
+  param {
+    name: "embed_w"
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    name: "embed_b"
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 2
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "xavier"
+      value: 0.2
+    }
+  }
+}
+layer {
+  name: "inner_product_neighbor1"
+  type: "InnerProduct"
+  bottom: "neighbor1"
+  top: "inner_product_neighbor1"
+  param {
+    name: "embed_w"
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    name: "embed_b"
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 2
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "xavier"
+      value: 0.2
+    }
+  }
+}
+layer {
+  name: "inner_product_neighbor2"
+  type: "InnerProduct"
+  bottom: "neighbor2"
+  top: "inner_product_neighbor2"
+  param {
+    name: "embed_w"
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    name: "embed_b"
+    lr_mult: 2
+    decay_mult: 0
+  }
+  inner_product_param {
+    num_output: 2
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "xavier"
+      value: 0.2
+    }
+  }
+}
+layer {
+  name: "relu_target"
+  type: "ReLU"
+  bottom: "inner_product_target"
+  top: "inner_product_target"
+}
+layer {
+  name: "relu_negative"
+  type: "ReLU"
+  bottom: "inner_product_negative"
+  top: "inner_product_negative"
+}
+layer {
+  name: "relu_neighbor1"
+  type: "ReLU"
+  bottom: "inner_product_neighbor1"
+  top: "inner_product_neighbor1"
+}
+layer {
+  name: "relu_neighbor2"
+  type: "ReLU"
+  bottom: "inner_product_neighbor2"
+  top: "inner_product_neighbor2"
+}
+layer {
+  name: "context_sum"
+  type: "Eltwise"
+  bottom: "inner_product_neighbor1"
+  bottom: "inner_product_neighbor2"
+  top: "context_sum"
+  eltwise_param {
+    operation: SUM
+    coeff: 0.5
+    coeff: 0.5
+  }
+}
+layer {
+  name: "target_negative_diff"
+  type: "Eltwise"
+  bottom: "inner_product_target"
+  bottom: "inner_product_negative"
+  top: "target_negative_diff"
+  eltwise_param {
+    operation: SUM
+    coeff: 1
+    coeff: -1
+  }
+}
+layer {
+  name: "loss"
+  type: "Python"
+  bottom: "context_sum"
+  bottom: "target_negative_diff"
+  top: "loss"
+  python_param {
+    module: "my_dot_product_layer"
+    layer: "MyHingLossDotProductLayer"
+  }
+}

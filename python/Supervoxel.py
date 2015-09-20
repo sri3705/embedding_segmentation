@@ -224,7 +224,41 @@ class Segmentation:
 		print "data.shape: ", data.shape
 		return data
 
-	def getFeatures(self):
+	def dummyData(self, number_of_data, feature_vec_size):
+		data = np.arange(number_of_data*feature_vec_size)
+		data = data.reshape(number_of_data, feature_vec_size)
+		data = data.astype('float32')
+
+		return data
+
+	def getFeatures(self, k):
+		supervoxels = set(self.supervoxels_list)
+		k = 1
+		feature_len = len(self.supervoxels_list[0].getFeature())
+		n = len(supervoxels)
+		data = {'target':self.dummyData(n, feature_len), 'negative':self.dummyData(n, feature_len)}
+		for i in range(k):
+			data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
+		for i, sv in enumerate(self.supervoxels_list):
+			neighbors = self.getKNearestSupervoxelsOf(sv, k)
+			supervoxels.difference_update(neighbors) #ALl other supervoxels except Target and its neighbors
+			#TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
+			# Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
+			negative = random.sample(supervoxels, 1)[0] #Sample one supervoxel as negatie
+			neighbors.remove(sv)
+
+			#when everything is done we put back neighbors to the set
+			supervoxels.update(neighbors)
+			supervoxels.add(sv)
+
+			data['target'][i][...] = sv.getFeature()
+			for j, nei in enumerate(neighbors):
+				data['neighbor{0}'.format(j)][i][...] = nei.getFeature()
+				#data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
+			data['negative'][i][...] = negative.getFeature()
+		return data
+
+	def getFeaturesInOne(self):
 		supervoxels = set(self.supervoxels_list)
 		k = 1
 		feature_len = len(self.supervoxels_list[0].getFeature())
@@ -260,10 +294,15 @@ class DB:
 	def __db__(self):
 		return self.h5pyDB
 
-	def save(self, data, name):
-		data = np.array(data)
-		data = data.astype('float32')
-		self.h5pyDB.create_dataset(name, data=data, compression='gzip', compression_opts=1)
+	def save(self, data, name='data'):
+		if isinstance(data, dict):
+			for name, dataset in data.iteritems():
+				self.h5pyDB.create_dataset(name, data=dataset, compression='gzip', compression_opts=1)
+	
+		else:
+			data = np.array(data)
+			data = data.astype('float32')
+			self.h5pyDB.create_dataset(name, data=data, compression='gzip', compression_opts=1)
 	
 	
 	def close(self):
@@ -314,12 +353,14 @@ def main():
 		
 
 	#TODO create database
-	data = segmentor.getFeatures()
+	datasets = segmentor.getFeatures(1)
 	#print data
 	#database_path = '
 	mkdirs(dataset_path)
 	database = DB(dataset_path)
-	database.save(data, 'data')
+	for name, data in datasets.iteritems():
+		database.save(data, name)
+	#database.save(dataset)	
 	database.close()
 
 	#f = h5py.File(dataset_path, 'r')
