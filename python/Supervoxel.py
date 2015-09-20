@@ -212,7 +212,7 @@ class Segmentation:
 		'''
 		nearestNeighbors = self.cKDTree.query(np.array(supervoxel.center()), k+1)[1] # Added one to the neighbors because the target itself is included
 	
-		return set([self.supervoxels_list[i] for i in nearestNeighbors])
+		return set([self.supervoxels_list[i] for i in nearestNeighbors[1:]])
 	
 	def prepareData(self, k, number_of_data, feature_vec_size):
 		feature_size = feature_vec_size * (1 + k + 1) #One for the target, k for neighbors, one for negative
@@ -233,19 +233,18 @@ class Segmentation:
 
 	def getFeatures(self, k):
 		supervoxels = set(self.supervoxels_list)
-		k = 1
 		feature_len = len(self.supervoxels_list[0].getFeature())
 		n = len(supervoxels)
 		data = {'target':self.dummyData(n, feature_len), 'negative':self.dummyData(n, feature_len)}
 		for i in range(k):
 			data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
 		for i, sv in enumerate(self.supervoxels_list):
-			neighbors = self.getKNearestSupervoxelsOf(sv, k)
+			neighbors = self.getKNearestSupervoxelsOf(sv, k) 
 			supervoxels.difference_update(neighbors) #ALl other supervoxels except Target and its neighbors
 			#TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
 			# Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
 			negative = random.sample(supervoxels, 1)[0] #Sample one supervoxel as negatie
-			neighbors.remove(sv)
+			#neighbors.remove(sv)
 
 			#when everything is done we put back neighbors to the set
 			supervoxels.update(neighbors)
@@ -256,6 +255,7 @@ class Segmentation:
 				data['neighbor{0}'.format(j)][i][...] = nei.getFeature()
 				#data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
 			data['negative'][i][...] = negative.getFeature()
+		print data.keys()
 		return data
 
 	def getFeaturesInOne(self):
@@ -309,7 +309,7 @@ class DB:
 		self.h5pyDB.close()
 
 def main():
-	level = 20
+	level = 10
 	frame_format = '{0:05d}.ppm'
 	seg_path = '/cs/vml3/mkhodaba/cvpr16/libsvx.v3.0/example/output_gbh/{0:02d}/'.format(level)
 	orig_path = '/cs/vml3/mkhodaba/cvpr16/libsvx.v3.0/example/frames_ppm/' + frame_format
@@ -321,7 +321,7 @@ def main():
 	# Preparing data for 
 	#segmentor = Segmentation(orig_path, seg_path+frame_format)
 	segmentor = Segmentation(seg_path+frame_format, seg_path+frame_format)
-	for i in range(1, 3):
+	for i in range(1, 5):
 		print i
 		segmentor.processNewFrame()
 	segmentor.doneProcessing()
@@ -353,7 +353,7 @@ def main():
 		
 
 	#TODO create database
-	datasets = segmentor.getFeatures(1)
+	datasets = segmentor.getFeatures(2)
 	#print data
 	#database_path = '
 	mkdirs(dataset_path)
@@ -361,7 +361,7 @@ def main():
 	for name, data in datasets.iteritems():
 		database.save(data, name)
 	#database.save(dataset)	
-	database.close()
+#	database.close()
 
 	#f = h5py.File(dataset_path, 'r')
 	#print f['data'].value
