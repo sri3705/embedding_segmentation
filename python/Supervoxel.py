@@ -1,6 +1,35 @@
 from PIL import Image
 import math
 
+def delete_module(modname, paranoid=None):
+    from sys import modules
+    try:
+        thismod = modules[modname]
+    except KeyError:
+        raise ValueError(modname)
+    these_symbols = dir(thismod)
+    if paranoid:
+        try:
+            paranoid[:]  # sequence support
+        except:
+            raise ValueError('must supply a finite list for paranoid')
+        else:
+            these_symbols = paranoid[:]
+    del modules[modname]
+    for mod in modules.values():
+        try:
+            delattr(mod, modname)
+        except AttributeError:
+            pass
+        if paranoid:
+            for symbol in these_symbols:
+                if symbol[:2] == '__':  # ignore special symbols
+                    continue
+                try:
+                    delattr(mod, symbol)
+                except AttributeError:
+                    pass
+
 class MyImage:
 	def __init__(self, path):
 		self.img = Image.open(path)
@@ -28,28 +57,34 @@ class MyImage:
 
 class Supervoxel:
 
-	def __init__(self, ID):
+	def __init__(self, ID, bin_num=11):
+		'''
+		:param arg1: the id of the supervoxel (we use color-tuple -> (r,g,b))
+		:param arg2: number of histogram bins per channel
+		:type arg1: any hashable object (we use tuple)
+		:type arg2: int
+		'''
 		try:
 			hash(ID)
 		except TypeError:
 			raise Exception('ID must be immutable (hashable)')
-		self.__ID__ = ID
+		self.ID = ID
 		self.pixels = {} # frame -> set of (x,y)
-#		self.pixels = set() # set of tupels (x, y, frame_number)
-		self.colors_dict = {} # (x,y,f) -> (R, G, B) actual color in the frame
-		self.colors_hist = {} # histogram of actual colors
+		self.colors_dict = {} # (x,y,f) -> (R, G, B) actual color in the frame		
+		self.__initializeCenter()
+		self.__initializeHistogram()
+
+	def __initializeCenter(self):
 		self.sum_x = 0
 		self.sum_y = 0
 		self.sum_t = 0
 		self.number_of_pixels = 0
+			
+	def __initializeHistogram(self):
+		self.R_hist = [0 for i in xrange(256)]
+		self.G_hist = [0 for i in xrange(256)]
+		self.B_hist = [0 for i in xrange(256)]
 
-		self.bin_width = 130
-		self.n_bins = int(math.ceil(255.0/self.bin_width))
-		
-		self.R_hist = [0 for i in xrange(self.n_bins)]
-		self.G_hist = [0 for i in xrange(self.n_bins)]
-		self.B_hist = [0 for i in xrange(self.n_bins)]
-	
 	def addVoxel(self, x,y,t, color):
 		if t not in self.pixels.keys():
 			self.pixels[t] = set()
@@ -59,15 +94,35 @@ class Supervoxel:
 		self.sum_y += y
 		self.sum_t += t
 		self.number_of_pixels += 1
-		self.__update_hist__(color)
+		self.__updateHistogram(color)
 
-	def __update_hist__(self, color):
-		self.R_hist[int(color[0]/self.bin_width)] += 1				
-		self.G_hist[int(color[1]/self.bin_width)] += 1		
-		self.B_hist[int(color[2]/self.bin_width)] += 1		
+	def __updateHistogram(self, color):
+		self.R_hist[color[0]] += 1				
+		self.G_hist[color[1]] += 1		
+		self.B_hist[color[2]] += 1		
 		
-	def getFeature(self):
-		return [i*1.0/self.number_of_pixels for i in self.R_hist+self.G_hist+self.B_hist]
+	#def __recomputeFeatures(self, bin_num):
+	#	self.n_bins = bin_num
+	#	self.__initializeHistogram()
+	#	for color in colors_dict.values():
+	#		self.__updateHitsogram(color)
+	#	return self.getFeature()
+
+	def getFeature(self, number_of_bins=16):
+		bin_width = 256/number_of_bins
+		bin_num = -1
+		r_hist = [0 for i in xrange(number_of_bins)]
+		g_hist = r_hist[:]
+		b_hist = r_hist[:]
+
+		for i in xrange(256):
+			if i%bin_width == 0:
+				bin_num+=1
+			r_hist[bin_num]+=self.R_hist[i]
+			g_hist[bin_num]+=self.G_hist[i]
+			b_hist[bin_num]+=self.B_hist[i]
+		return [i*1.0/self.number_of_pixels for i in r_hist+g_hist+b_hist]
+
 
 	def getPixelsAtFrame(self, f):
 		return self.pixels[f]
@@ -80,13 +135,13 @@ class Supervoxel:
 		return (self.sum_x/n, self.sum_y/n, self.sum_t/n)
 
 	def __str__(self):
-		return "Supervoxel [ID:"+str(self.__ID__)+ ", Center:"+str(self.center()) + "]"
+		return "Supervoxel [ID:"+str(self.ID)+ ", Center:"+str(self.center()) + "]"
 
 	def __eq__(self, other):
-		return self.__ID__ == other.__ID__
+		return self.ID == other.ID
 
 	def __hash__(self):
-		return hash(self.__ID__)
+		return hash(self.ID)
 
 
 from scipy.spatial import cKDTree
@@ -103,7 +158,14 @@ def mkdirs(path):
 
 class Segmentation:
 	
-	def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm'):
+
+	def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', segment=None):
+		if segment is not None:
+			attrs = [a for a in dir(segment) if not a.startswith('__') and not callable(getattr(segment,a))]
+			for attr in attrs:
+				print attr
+				setattr(self, attr, getattr(segment, attr))
+			return
 		self.supervoxels = {} # ID -> Supervoxel
 		self.frame_to_voxels = {} # frame (int) -> Supervoxel
 		self.current_frame = 1
@@ -158,7 +220,7 @@ class Segmentation:
 	#	all_voxels = []
 	#	for sv in supervoxels_set:
 	#		for p in sv.pixels:
-	#			all_voxels.append((p, sv.__ID__)) #pair of (pixel, ID). ID is usually color in segmented image
+	#			all_voxels.append((p, sv.ID)) #pair of (pixel, ID). ID is usually color in segmented image
 	#
 	#	all_voxels.sort(key=lambda x: x[0][2]) #sort all pixels of all supervoxels based on frame number
 	#
@@ -172,7 +234,7 @@ class Segmentation:
 	#			img = MyImage(from_path.format(open_frame))
 	#		img.putpixel(x,y, color)		
 
-	def visualizeSegments(self, supervoxels_set, from_path='./orig/{0:05d}.ppm', to_path='./save/{0:05d}.ppm'):
+	def visualizeSegments(self, supervoxels_set, from_path='./orig/{0:05d}.ppm', to_path='./save/{0:05d}.ppm', colors={}):
 		mkdirs(to_path)
 		all_frames = set()
 		for sv in supervoxels_set:
@@ -181,14 +243,16 @@ class Segmentation:
 		for f in all_frames:
 			img = MyImage(from_path.format(f))
 			for sv in supervoxels_set:
+				#clr = colors[sv.ID]
 				if f in sv.pixels:
 					for x,y in sv.pixels[f]:
-						img.putpixel(x,y, sv.__ID__)
+						#img.putpixel(x,y, clr)
+						img.putpixel(x,y, sv.ID)
 			img.save(to_path.format(f))		
 
 	def doneProcessing(self):
 		self.supervoxels_list = self.supervoxels.values()
-		self.cKDTree = cKDTree(np.array([sv.center() for sv in self.supervoxels_list]))
+		
 		
 
 	def getSupervoxelAt(self, x, y, t):
@@ -197,6 +261,14 @@ class Segmentation:
 			if pixel in sv.pixels[t]:
 				return sv
 	
+	
+class MySegmentation(Segmentation):
+	def __init__(self, segment=None):
+		if  segment is None:
+			super(Segmentation, self).__init__(segment.original_path, segmented_path)
+		else:
+			super(Segmentation, self).__init__(segment.original_path, segmented_path, segment)
+			
 	def getNearestSupervoxelsOf(self, supervoxel, threshold=30):
 		pass
 
@@ -210,7 +282,9 @@ class Segmentation:
 		:rtype: set()
 		
 		'''
-		nearestNeighbors = self.cKDTree.query(np.array(supervoxel.center()), k+1)[1] # Added one to the neighbors because the target itself is included
+		if not hasattr(self, 'cKDTree'):
+			self.__cKDTree__ = cKDTree(np.array([sv.center() for sv in self.supervoxels_list]))
+		nearestNeighbors = self.__cKDTree__.query(np.array(supervoxel.center()), k+1)[1] # Added one to the neighbors because the target itself is included
 	
 		return set([self.supervoxels_list[i] for i in nearestNeighbors[1:]])
 	
@@ -225,6 +299,15 @@ class Segmentation:
 		return data
 
 	def dummyData(self, number_of_data, feature_vec_size):
+		'''
+		:param arg1: number of data (n)
+		:param arg2: length of the feature vector of each supervoxel (k)
+		:type arg1: int
+		:type arg2: int
+		:return: an array of size n by k
+		:rtype: numpy.array
+		
+		'''
 		data = np.arange(number_of_data*feature_vec_size)
 		data = data.reshape(number_of_data, feature_vec_size)
 		data = data.astype('float32')
@@ -232,6 +315,15 @@ class Segmentation:
 		return data
 
 	def getFeatures(self, k):
+		'''
+		:param arg1: number of nieghbors (k)
+		:type arg1: int
+		:return: a dictionary that has the following keys: target, negative, neighbor0, neighbor1, ..., neighbork
+			the value of each key is a numpy.array of size n by f, where n is the number of supervoxels in the
+			video and f is the size of the feature vector of each supervoxel
+		:rtype: dict
+		
+		'''
 		supervoxels = set(self.supervoxels_list)
 		feature_len = len(self.supervoxels_list[0].getFeature())
 		n = len(supervoxels)
@@ -255,7 +347,7 @@ class Segmentation:
 				data['neighbor{0}'.format(j)][i][...] = nei.getFeature()
 				#data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
 			data['negative'][i][...] = negative.getFeature()
-		print data.keys()
+		#print data.keys()
 		return data
 
 	def getFeaturesInOne(self):
@@ -281,6 +373,7 @@ class Segmentation:
 				data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
 			data[i][(k+1)*feature_len:(k+2)*feature_len] = negative.getFeature()
 		return data
+	
 
 import random
 import h5py
@@ -308,26 +401,40 @@ class DB:
 	def close(self):
 		self.h5pyDB.close()
 
-def main():
-	level = 10
-	frame_format = '{0:05d}.ppm'
-	seg_path = '/cs/vml3/mkhodaba/cvpr16/libsvx.v3.0/example/output_gbh/{0:02d}/'.format(level)
-	orig_path = '/cs/vml3/mkhodaba/cvpr16/libsvx.v3.0/example/frames_ppm/' + frame_format
-	first_output = '/cs/vml3/mkhodaba/cvpr16/libsvx.v3.0/example/mehran_gbh/{0:02d}/'.format(level)	
-	output_path = '/cs/vml3/mkhodaba/cvpr16/libsvx.v3.0/example/mehran_gbh/{0:02d}/0/'.format(level)
+def doSegmentation(**kargs):
+	pass
+def doDataCollection(**kargs):
+	pass
 
-	dataset_path = '/cs/vml3/mkhodaba/cvpr16/code/embedding_segmentation/dataset/dataset1.h5'
+
+import cPickle as pickle
+
+def main():
+
+	frame_format = '{0:05d}.ppm'
+	seg_path = '/cs/vml3/mkhodaba/cvpr16/dataset/b{0}/seg/{1:02d}/' #+ frame_format
+	orig_path = '/cs/vml3/mkhodaba/cvpr16/dataset/b{0}/' #+ frame_format
+	first_output = '/cs/vml3/mkhodaba/cvpr16/dataset/b{0}/mymethod/{1:02d}/first/'#.format(level)	
+	output_path = '/cs/vml3/mkhodaba/cvpr16/dataset/b{0}/mymethod/{1:02d}/output/'#.format(level)
+	dataset_path = '/cs/vml3/mkhodaba/cvpr16/code/embedding_segmentation/dataset/{name}'
 	
 	# Preparing data for 
 	#segmentor = Segmentation(orig_path, seg_path+frame_format)
-	segmentor = Segmentation(seg_path+frame_format, seg_path+frame_format)
-	for i in range(1, 5):
-		print i
-		segmentor.processNewFrame()
-	segmentor.doneProcessing()
-	print "Total number of supervoxels: {0}".format(len(segmentor.supervoxels))
-
-	
+	level = 1
+	segmentors = []
+	vid_num = 4
+	frames_per_video = 31
+	for d in range(1,vid_num):
+		print 'b{0}'.format(d)
+		segmentor = MySegmentation(orig_path.format(d)+frame_format, seg_path.format(d,level)+frame_format)
+		for i in range(1, frames_per_video):
+			print "processing frame {i}".format(i=i)
+			segmentor.processNewFrame()
+		segmentor.doneProcessing()
+		segmentors.append(segmentor)
+		print "Total number of supervoxels: {0}".format(len(segmentor.supervoxels))
+		print
+		
 	#sv = segmentor.getSupervoxelAt(27, 127, 20)
 	#print sv
 	#supervoxels = segmentor.getKNearestSupervoxelsOf(sv, 6)
@@ -337,38 +444,77 @@ def main():
 
 
 	#TODO check if features are correct
-	for sv in segmentor.supervoxels_list:
+	##for sv in segmentor.supervoxels_list:
+		##print sv.getFeature()
+		##print "ID: {0}".format(sv.ID)		
+
 		#R_hist = [0 for i in xrange(13)]
 		#G_hist = [0 for i in xrange(13)]
 		#B_hist = [0 for i in xrange(13)]
-		#R_hist[int(sv.__ID__[0]/20)] += 1
-		#G_hist[int(sv.__ID__[1]/20)] += 1
-		#B_hist[int(sv.__ID__[2]/20)] += 1
-		print sv.getFeature()
+		#R_hist[int(sv.ID[0]/20)] += 1
+		#G_hist[int(sv.ID[1]/20)] += 1
+		#B_hist[int(sv.ID[2]/20)] += 1
 		#print R_hist+G_hist+B_hist
-		print "ID: {0}".format(sv.__ID__)		
 		#print sum(sv.getFeature())/3		
 		#print "Num pixels: {0}".format(sv.number_of_pixels)
 
-		
-
-	#TODO create database
-	datasets = segmentor.getFeatures(2)
-	#print data
-	#database_path = '
-	mkdirs(dataset_path)
-	database = DB(dataset_path)
-	for name, data in datasets.iteritems():
-		database.save(data, name)
-	#database.save(dataset)	
-#	database.close()
-
-	#f = h5py.File(dataset_path, 'r')
-	#print f['data'].value
 	
 
-	#segmentor.visualizeSegments([sv], orig_path, first_output+frame_format)
-	#segmentor.visualizeSegments(supervoxels, first_output+frame_format, output_path+frame_format)
+	#TODO create database
+	mkdirs(dataset_path)
+	database = DB(dataset_path.format(name='b1b2_train_16bins_lvl{0}.h5'.format(level)))
+
+	print 'Collecting features ...'
+	neighbor_num = 6
+	keys = ['target', 'negative'] + [ 'neighbor{0}'.format(i) for i in range(neighbor_num)]	
+	features = segmentors[0].getFeatures(neighbor_num)
+	print 'shape features', features['target'].shape
+	feats = [features]
+	print 'video 1 done!'
+	for i in range(1, len(segmentors)-1):
+		tmp = segmentors[i].getFeatures(neighbor_num)
+		feats.append(tmp)
+		for key in keys:
+			features[key] = np.append(features[key], tmp[key], axis=0)	
+		print 'video {0} done!'.format(i+1)
+	#print data
+	#database_path = '
+	print 'saving to database ...'
+	for name, data in features.iteritems():
+		database.save(data, name)
+	#database.save(dataset)	
+	database.close()
+
+
+	database = DB(dataset_path.format(name='b3_test_16bins_lvl{0}.h5'.format(level)))
+
+	print 'Collecting features ...'
+	neighbor_num = 6
+	features = segmentors[-1].getFeatures(neighbor_num)
+	print 'shape features', features['target'].shape
+	feats = [features]
+	print 'video 3 done!'
+	#print data
+	#database_path = '
+	print 'saving to database ...'
+	for name, data in features.iteritems():
+		database.save(data, name)
+	#database.save(dataset)	
+	database.close()
+
+
+
+	print 'done!'
+
+	for i in range(len(segmentors)):
+		print i
+		segmentors[i] = Segmentation(segment=segmentors[i])
+
+	print 'pickle segments ...'
+	pickle.dump( segmentors, open(dataset_path.format(name='segmentors_lvl1.p'), 'w'))
+	print 'pickle features ...'	
+	pickle.dump( feats, open(dataset_path.format(name='features_lvl1.p'), 'w'))
+	
 
 
 if __name__ == "__main__":

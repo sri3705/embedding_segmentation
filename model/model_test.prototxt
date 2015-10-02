@@ -12,7 +12,7 @@ layer {
   top: "negative"
   hdf5_data_param {
     source: "/cs/vml3/mkhodaba/cvpr16/code/embedding_segmentation/dataset/datalist_train.txt"
-    batch_size: 20
+    batch_size: 2566
   }
 }
 layer {

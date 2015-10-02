@@ -1,0 +1,34 @@
+# The train/test net protocol buffer definition
+net: "/cs/vml3/mkhodaba/cvpr16/code/embedding_segmentation/model/model.prototxt"
+#train_net:  "/cs/vml3/mkhodaba/cvpr16/code/embedding_segmentation/model/model.prototxt"
+#test_net:  "/cs/vml3/mkhodaba/cvpr16/code/embedding_segmentation/model/model.prototxt"
+# test_iter specifies how many forward passes the test should carry out.
+# In the case of MNIST, we have test batch size 100 and 100 test iterations,
+# covering the full 10,000 testing images.
+test_iter: 100
+# Carry out testing every 500 training iterations.
+test_interval: 500
+# The base learning rate, momentum and the weight decay of the network.
+momentum: 0.9
+weight_decay: 0.0005
+# The learning rate policy
+
+#lr_policy: "inv"
+
+base_lr: 0.01     # begin training at a learning rate of 0.01 = 1e-2
+
+lr_policy: "step" # learning rate policy: drop the learning rate in "steps"
+                  # by a factor of gamma every stepsize iterations
+
+gamma: 0.1        # drop the learning rate by a factor of 10
+                  # (i.e., multiply it by a factor of gamma = 0.1)
+stepsize: 300000  # drop the learning rate every 100K iterations
+
+power: 0.75
+# Display every 100 iterations
+display: 100
+# The maximum number of iterations
+max_iter: 1000000
+# snapshot intermediate results
+snapshot: 5000
+snapshot_prefix: "/cs/vml3/mkhodaba/cvpr16/code/embedding_segmentation/snapshot/vml_gpu/many/"
