@@ -10,9 +10,9 @@ caffe.set_mode_gpu()
 
 model_prototxt_name = 'model.prototxt'
 solver_prototxt_name = 'solver_vml_gpu2.prototxt'
-niter = 1000000
-train_interval = 100
-test_interval = 1000
+niter = 500000
+train_interval = 1000
+test_interval = 10000
 net = caffe.Net(root + model_prototxt_name, caffe.TRAIN)
 
 #solver = caffe.SGDSolver(root+'solver.prototxt')
