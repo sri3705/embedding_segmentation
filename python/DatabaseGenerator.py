@@ -17,7 +17,7 @@ def createJHMDB(db_settings, logger):
 	frame_format = db_settings['frame_format']
 	action_name = db_settings['action_name']
 	video_name = db_settings['video_name'] 
-	annotation_path = db_settings['annotation_path']	
+	annotation_path = db_settings['annotation_path']
 	segmented_path = db_settings['segmented_path']	
 	orig_path = db_settings['orig_path']
 	level = db_settings['level']
@@ -26,6 +26,7 @@ def createJHMDB(db_settings, logger):
 	neighbor_num = db_settings['number_of_neighbors'] #TODO add this to db_settings in experimentSetup	
 	database_path = db_settings['database_path']
 	database_list_path = db_settings['database_list_path']
+	features_path = db_settings['features_path']
 	#TODO: maybe we should save them segarately
 	#TODO: write a merge segment function?
 	segmentors = {}
@@ -37,7 +38,9 @@ def createJHMDB(db_settings, logger):
 			annotator = JA(annotation_path.format(action_name=action, video_name=video))
 			segmentor = MySegmentation(orig_path.format(action_name=action, video_name=video, level=level)+frame_format,
 							segmented_path.format(action_name=action, video_name=video, level=level)+frame_format,
+							features_path.format(action_name=action, video_name=video, level=level),
 							annotator)
+			segmentor.setFeatureType(FeatureType.MBH)
 			for i in xrange(frame):
 				logger.log('frame {0}'.format(i+1))
 				segmentor.processNewFrame()
@@ -68,7 +71,7 @@ def createJHMDB(db_settings, logger):
 				for name, data in features.iteritems():
 					database.save(data, name)
 				database.close()
-				db_path.write(db_path);
+				db_list.write(db_path);
 	logger.log('done!')
 
 def createUCFSports(db_settings, log_path):

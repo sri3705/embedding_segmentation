@@ -12,9 +12,10 @@ def setup_experiment(extract_features=False, visualization=False):
 	logger.log('Creating Network ...')
 	createNetwork(config.model)
 	logger.log('Creating Solver prototxt ...')
-	with open(config.solver['solver_prototxt_path'], 'w') as f:
+	with open(config.solver['_solver_prototxt_path'], 'w') as f:
 		for key, val in config.solver.iteritems():
-			f.write('{key}:{val}\n'.format(key=key, val=val))
+			if not key.startswith('_'):
+				f.write('{key}:{val}\n'.format(key=key, val='"{0}"'.format(val) if isinstance(val, str) else val))
 	if extract_features:
 		#TODO: ^^^^ add neighbor_num to db_settigs shit!
 		print 'extract features'

@@ -2,6 +2,8 @@
 from utils import mkdirs, getDirs
 from Logger import LogType
 import cPickle as pickle
+from Segmentation import FeatureType
+
 class Config:
 	def __init__(self, experiment_number=None):
 		
@@ -32,28 +34,35 @@ class Config:
 			'b_lr_mult':		2,
 			'b_decay_mult':		0,
 			'model_prototxt_path':	self.experiments_path+'/model.prototxt',
-			'dataset_list_path':	self.experiments_path+'/dataset_list.txt',
+			'database_list_path':	self.experiments_path+'/database_list.txt',
+			'feature_type':		FeatureType.MBH,
 			
 			
 		}
 
 		self.solver = {
-			'weight_decay':		0.0005,
-			'base_lr':		0.09,
-			'momentum': 		0.1,
-			'gamma':		0.0001,
-			'power':		0.75,
+			'weight_decay':		0.0001,
+			'base_lr':		0.01,
+			'momentum': 		0.95,
+			'gamma':		0.1,
+			'power':		0.50,
 			'display':		100000,
 			'test_interval':	500,
 			'test_iter':		100,
-			'snapshot':		4,
+			'snapshot':		5000,
+			'lr_policy': 		"step",
+			'stepsize':		5000,
 			'snapshot_prefix':	self.experiments_path+'/snapshot/',
-			'solver_prototxt_path':	self.experiments_path+'/solver.prototxt',						
-			'model_prototxt_path':	self.model['model_prototxt_path'],
 			'train_net':		self.model['model_prototxt_path'],
 			'test_net':		self.model['model_prototxt_path'],
+			'max_iter':		100000,
+			'_train_interval':	1000,
+			'_termination_threshold':0.000001,
+			'_solver_prototxt_path':	self.experiments_path+'/solver.prototxt',						
+			'_model_prototxt_path':	self.model['model_prototxt_path'],
 		}
 
+		mkdirs(self.solver['snapshot_prefix'])
 
 		self.results_path = self.experiments_path+'/results.txt'
 
@@ -80,7 +89,9 @@ class Config:
 			'output_path':		'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/output/{action_name}/{video_name}/{level:02d}/{experiment_number}/', #+frame_format
 			'database_path':	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/databases/{action_name}/{video_name}/{level:02d}.h5',
 			'pickle_path':		'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/pickle/{action_name}/{video_name}/{level:02d}.p',
-			'database_list_path':	self.model['database_list_path']
+
+			'database_list_path':	self.model['database_list_path'],
+			'feature_type':		self.model['feature_type'],
 		}		
 		num_videos = 1 #set to None for all
 		

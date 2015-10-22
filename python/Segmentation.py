@@ -5,11 +5,17 @@ from Supervoxel import *
 from utils import mkdirs
 from Annotation import Annotator
 
+from enum import Enum
+
+class FeatureType(Enum):
+	COLOR_HISTOGRAM = 1
+	MBH = 2
+	#DEEP = 3
+
 class Segmentation(object):
 	
 
 	def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', annotator=None, segment=None):
-		print 'hi'		
 		if segment is not None:
 			attrs = [a for a in dir(segment) if not a.startswith('__') and not callable(getattr(segment,a))]
 			for attr in attrs:
@@ -169,13 +175,14 @@ class Segmentation(object):
 			setattr(self, key, dic[key])
 
 class MySegmentation(Segmentation):
-	def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', annotator=None, segment=None):
+	def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', features_path = './features.txt', annotator=None, segment=None):
 		if  segment is None:
 			print original_path, segmented_path, len(annotator.labels)
 			super(MySegmentation, self).__init__(original_path, segmented_path, annotator)
 		else:
 			super(Segmentation, self).__init__(segment.original_path, segmented_path, segment)
-			
+		self.features_path = features_path
+
 	def getNearestSupervoxelsOf(self, supervoxel, threshold=30):
 		pass
 
@@ -213,22 +220,24 @@ class MySegmentation(Segmentation):
 		:return: an array of size n by k
 		:rtype: numpy.array
 		'''
+		#TODO: what the hell? just use np.zeros(n,f)
 		data = np.arange(number_of_data*feature_vec_size)
 		data = data.reshape(number_of_data, feature_vec_size)
 		data = data.astype('float32')
 
 		return data
 
-	def getFeatures(self, k, negative_numbers=1):
-		'''
-		:param arg1: number of nieghbors (k)
-		:type arg1: int
-		:return: a dictionary that has the following keys: target, negative, neighbor0, neighbor1, ..., neighbork
-			the value of each key is a numpy.array of size n by f, where n is the number of supervoxels in the
-			video and f is the size of the feature vector of each supervoxel
-		:rtype: dict
+	def setFeatureType(self, feature_type):
+		self.feature_type = feature_type
+	
+#	def _extract_features_from_supervoxel_(self, sv):
+#		if self.feature_type == FeatureType.COLOR_HISTOGRAM:
+#			return sv.getFeature()
+#		elif self.feature_type == FeatureType.MBH:
+#		else:
+#			raise "Feature type is wrong!"
 		
-		'''
+	def _extract_color_histogram(self, k, negative_numbers):
 		assert k >= 2, 'K < 2: At least 2 neighbors is needed'
 
 		supervoxels = set(self.supervoxels_list)
@@ -267,6 +276,83 @@ class MySegmentation(Segmentation):
 		#print data.keys()
 		return data
 
+	def _read_features(self):
+		import csv
+		with open(path, 'r') as csvfile:
+			reader = csv.reader(csvfile, delimiter=' ', quotechar='|')
+			f1 = map(float, reader.next())
+
+			print 'feature last 10:', f1[:3], f1[-10:]
+
+			features = np.zeros((len(self.supervoxels_list), len(f1)-3)) #first three are the ids 
+			dic = {(int(f1[0]), int(f1[1]), int(f1[3])): 0}
+			features[0][...] = f1[...]
+			for i,row in enumerate(reader):
+				f1 = map(float, row)
+				dic[(int(f1[0]), int(f1[1]), int(f1[3]))] = i+1
+				features[i+1][...] = f1[3:]
+			return features, dic
+	
+	def _extract_mbh(self, k, negative_numbers):
+		
+		features, dic = self._read_features()
+			
+		supervoxels = set(self.supervoxels_list)
+		feature_len = features.shape[1] #first three numbers are the id
+		n = len(supervoxels) * negative_numbers
+		data = {'target':self.dummyData(n, feature_len), 'negative':self.dummyData(n, feature_len)}
+		for i in range(k):
+			data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
+		for i, sv in enumerate(self.supervoxels_list):
+			neighbors = self.getKNearestSupervoxelsOf(sv, k) 
+			#print 'neighbors', len(neighbors)
+			supervoxels.difference_update(neighbors) #ALl other supervoxels except Target and its neighbors
+			#TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
+			# Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
+			negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
+			#neighbors.remove(sv)
+
+			#when everything is done we put back neighbors to the set
+			supervoxels.update(neighbors)
+			supervoxels.add(sv)
+			idx = i*negative_numbers
+			data['target'][idx][...] = features[dic[sv.ID]][...]#sv.getFeature()
+			for j, nei in enumerate(neighbors):
+				data['neighbor{0}'.format(j)][idx][...] = features[dic[nei.ID]][...]#nei.getFeature()
+				#data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
+			data['negative'][idx][...] = features[dic[negatives[0].ID]][...]#negatives[0].getFeature()
+			for neg in xrange(1, negative_numbers):
+				idx = i*negative_numbers+neg
+				data['target'][idx][...] = data['target'][idx][...]
+				for j, nei in enumerate(neighbors):
+					data['neighbor{0}'.format(j)][idx][...] = data['neighbor{0}'.format(j)][idx][...]
+					#data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
+				data['negative'][idx][...] = features[dic[negatives[neg].ID]][...]#negatives[neg].getFeature()
+								
+
+			#print data.keys()
+			return data
+
+		
+	def getFeatures(self, k, negative_numbers=1, features_type=FeatureType.COLOR_HISTOGRAM):
+		'''
+		:param arg1: number of nieghbors (k)
+		:type arg1: int
+		:return: a dictionary that has the following keys: target, negative, neighbor0, neighbor1, ..., neighbork
+			the value of each key is a numpy.array of size n by f, where n is the number of supervoxels in the
+			video and f is the size of the feature vector of each supervoxel
+		:rtype: dict
+		
+		'''
+		assert k >= 2, 'K < 2: At least 2 neighbors is needed'
+		if features_type == FeatureType.COLOR_HISTOGRAM:
+			return self._extract_color_histogram(k, negative_numbers)
+		elif features_type == FeatureType.MBH:
+			return self._extract_mbh(k, negative_numbers)
+		else:
+			raise "Feature type is invalid"
+
+
 	def getFeaturesInOne(self):
 		supervoxels = set(self.supervoxels_list)
 		k = 1
@@ -290,6 +376,15 @@ class MySegmentation(Segmentation):
 				data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
 			data[i][(k+1)*feature_len:(k+2)*feature_len] = negative.getFeature()
 		return data
+
+class MyMotionSegmentation(MySegmentation):
+	def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', annotator=None, segment=None):
+		if  segment is None:
+			print original_path, segmented_path, len(annotator.labels)
+			super(MySegmentation, self).__init__(original_path, segmented_path, annotator)
+		else:
+			super(Segmentation, self).__init__(segment.original_path, segmented_path, segment)
+
 	
 
 import random
@@ -317,6 +412,9 @@ class DB:
 	
 	def close(self):
 		self.h5pyDB.close()
+
+
+
 
 def doSegmentation(**kargs):
 	pass

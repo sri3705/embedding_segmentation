@@ -31,8 +31,8 @@ class Network:
 							    dict(name="embed_b{0}".format(ID), lr_mult=self.b_lr_mult, decay_mult=self.b_decay_mult)])
 						)
 
-	def createEmbeddingNetwork(self, dataset_list_path='.', batch_size=20):
-		dataset_path = dataset_list_path
+	def createEmbeddingNetwork(self, database_list_path='.', batch_size=20):
+		dataset_path = database_list_path
 		dataLayer = L.HDF5Data(name='dataLayer', 
 						source=dataset_path, 
 						batch_size=batch_size, 

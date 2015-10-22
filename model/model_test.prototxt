@@ -11,7 +11,7 @@ layer {
   top: "neighbor5"
   top: "negative"
   hdf5_data_param {
-    source: "/cs/vml3/mkhodaba/cvpr16/code/embedding_segmentation/dataset/datalist_train.txt"
+    source: "/cs/vml3/mkhodaba/cvpr16/code/embedding_segmentation/dataset/datalist.txt"
     batch_size: 2566
   }
 }
@@ -31,7 +31,7 @@ layer {
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 96
+    num_output: 768
     weight_filler {
       type: "xavier"
     }
@@ -57,7 +57,7 @@ layer {
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 96
+    num_output: 768
     weight_filler {
       type: "xavier"
     }
@@ -83,7 +83,7 @@ layer {
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 96
+    num_output: 768
     weight_filler {
       type: "xavier"
     }
@@ -109,7 +109,7 @@ layer {
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 96
+    num_output: 768
     weight_filler {
       type: "xavier"
     }
@@ -135,7 +135,7 @@ layer {
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 96
+    num_output: 768
     weight_filler {
       type: "xavier"
     }
@@ -161,7 +161,7 @@ layer {
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 96
+    num_output: 768
     weight_filler {
       type: "xavier"
     }
@@ -187,7 +187,7 @@ layer {
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 96
+    num_output: 768
     weight_filler {
       type: "xavier"
     }
@@ -213,7 +213,7 @@ layer {
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 96
+    num_output: 768
     weight_filler {
       type: "xavier"
     }

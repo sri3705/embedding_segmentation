@@ -7,10 +7,10 @@ net: "/cs/vml3/mkhodaba/cvpr16/code/embedding_segmentation/model/model.prototxt"
 # covering the full 10,000 testing images.
 test_iter: 100
 # Carry out testing every 500 training iterations.
-test_interval: 500
+test_interval: 50000
 # The base learning rate, momentum and the weight decay of the network.
-momentum: 0.9
-weight_decay: 0.0005
+momentum: 0.95
+weight_decay: 0.0001
 # The learning rate policy
 
 #lr_policy: "inv"
@@ -22,13 +22,13 @@ lr_policy: "step" # learning rate policy: drop the learning rate in "steps"
 
 gamma: 0.1        # drop the learning rate by a factor of 10
                   # (i.e., multiply it by a factor of gamma = 0.1)
-stepsize: 300000  # drop the learning rate every 100K iterations
+stepsize: 40000  # drop the learning rate every 100K iterations
 
-power: 0.75
+power: 0.50
 # Display every 100 iterations
-display: 100
+display: 1000
 # The maximum number of iterations
 max_iter: 1000000
 # snapshot intermediate results
-snapshot: 5000
-snapshot_prefix: "/cs/vml3/mkhodaba/cvpr16/code/embedding_segmentation/snapshot/vml_gpu/many/"
+snapshot: 15000
+snapshot_prefix: "/cs/vml3/mkhodaba/cvpr16/code/embedding_segmentation/snapshot/vml_gpu/256bins/"

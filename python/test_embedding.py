@@ -5,7 +5,7 @@ import random
 import time
 from configs import getConfigs
 
-conf = getConfigs(2)
+conf = getConfigs(1)
 snapshot_path = conf.solver['snapshot_prefix']
 db = conf.db_settings[conf.db]
 action = 'pour'
@@ -21,7 +21,7 @@ annotation_path = db['annotation_path'].format(action_name=action, video_name=vi
 snapshot_name = '_iter_360000.caffemodel'
 
 #model_name = 'model.prototxt'
-test_model_path = '/cs/vml2/mkhodaba/cvpr16/expriments/2/test.prototxt'
+test_model_path = '/cs/vml2/mkhodaba/cvpr16/expriments/1/test.prototxt'
 snapshot_path = '/cs/vml3/mkhodaba/cvpr16/code/embedding_segmentation/snapshot/vml_gpu/256bins/'	
 
 
@@ -80,6 +80,7 @@ def print_map(embeddingTester, threshold, k):
 	print '\t   Ours:     ', ours_map
 	print '\t   Baseline: ', baseline_map
 
+print_map(embeddingTester, threshold, 6)
 
 res = {}
 if 1 == 2:

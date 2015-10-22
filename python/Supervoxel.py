@@ -28,7 +28,7 @@ def delete_module(modname, paranoid=None):
                 try:
                     delattr(mod, symbol)
                 except AttributeError:
-                    pass
+                    passj
 
 class MyImage:
 	def __init__(self, path):
@@ -121,6 +121,7 @@ class Supervoxel(object):
 #	def __setstate__(self, dic):
 #		for key in dic:
 #			setattr(self, key, dic[key])
+
 
 
 class HistogramSupervoxel(Supervoxel):
