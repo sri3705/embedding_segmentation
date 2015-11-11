@@ -18,18 +18,20 @@ class EmbeddingTester:
 		print 'model'
 		self.model = caffe.Net(net_path, snapshot_path, caffe.TEST)
 		print 'test_model'
-		self.test_model = caffe.Net(test_model_path, snapshot_path, caffe.TEST)
+		if test_model_path:
+			self.test_model = caffe.Net(test_model_path, snapshot_path, caffe.TEST)
 
 	
 #TODO: implement features
 #	dataset_path.format(name='segmentors_lvl1.p')
 	def loadSegment(self, segment_pickle_path, features_pickle_path=None):
-		self.segment = pickle.load(open(segment_pickle_path, 'r'))
+		self.segments = pickle.load(open(segment_pickle_path, 'r'))
 		self.segment = self.segment[0]
 		#features = pickle.load(open(dataset_path.format(name='features_lvl1.p'), 'r'))
 		
 
-	
+	def getFeaturesOfSegment(self, seg_num):
+		self.model.test_nets[0].forward()	
 
 	#TODO implement this
 	def computeDistanceMatrix(self):

@@ -4,7 +4,7 @@ import numpy as np
 
 from configs import getConfigs
 
-conf = getConfigs(2)
+conf = getConfigs(8)
 
 
 model_prototxt_path = conf.model['model_prototxt_path']
@@ -20,9 +20,9 @@ caffe.set_mode_gpu()
 
 
 test_interval = conf.solver['test_interval'] #10000
-niter = conf.solver['_niter'] #500000
+niter = conf.solver['max_iter'] #500000
 train_interval = conf.solver['_train_interval'] #1000
-termination_threshold = 0.000001#conf.solver['_termination_threshold']
+termination_threshold = conf.solver['_termination_threshold']
 net = caffe.Net(model_prototxt_path, caffe.TRAIN)
 
 #solver = caffe.SGDSolver(root+'solver.prototxt')

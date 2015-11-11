@@ -1,5 +1,5 @@
 #In the name of God
-
+	
 from caffe import layers as L
 from caffe import params as P
 from caffe import NetSpec
@@ -31,12 +31,13 @@ class Network:
 							    dict(name="embed_b{0}".format(ID), lr_mult=self.b_lr_mult, decay_mult=self.b_decay_mult)])
 						)
 
-	def createEmbeddingNetwork(self, database_list_path='.', batch_size=20):
+	def createEmbeddingNetwork(self, database_list_path='.', batch_size=20, phase=0):
 		dataset_path = database_list_path
 		dataLayer = L.HDF5Data(name='dataLayer', 
 						source=dataset_path, 
 						batch_size=batch_size, 
-						ntop=2+self.number_of_neighbors)# tops-> target, [neighbors], negative
+						ntop=2+self.number_of_neighbors,
+						include=list([dict(phase=phase)]))# tops-> target, [neighbors], negative
 		#data -> [target, neighbor1, neighbor2, ..., neighbork, negative]
 		self.net.target = dataLayer[0]
 		self.net.negative = dataLayer[-1]
@@ -108,18 +109,65 @@ class Network:
 						module='my_dot_product_layer',
 						layer='MyHingLossDotProductLayer')
 
+
+
 	def saveNetwork(self, model_prototxt_path):
 		with open(model_prototxt_path, 'w') as f:
 			f.write("force_backward:true\n"+str(self.net.to_proto()))
-
+	
+	
 def createNetwork(settings):
-	print settings
+#	print settings
 	network_input = {var_name:settings[var_name] for var_name in getFuncArgNames(Network.__init__) if var_name != 'self' and var_name in settings}
 	network = Network(**network_input)
 	
 	inputs = {var_name:settings[var_name] for var_name in getFuncArgNames(Network.createEmbeddingNetwork) if var_name != 'self' and var_name in settings}
 	network.createEmbeddingNetwork(**inputs)
+#	print inputs	
+
+#	inputs = {var_name:db_settings[var_name] for var_name in getFuncArgNames(Network.createTestLayers) if var_name != 'self' and var_name in db_settings}
+#	print inputs
+#	network.createTestLayers(**inputs)
 
 	inputs = {var_name:settings[var_name] for var_name in getFuncArgNames(Network.saveNetwork) if var_name != 'self' and var_name in settings}
 	network.saveNetwork(**inputs)
+
+def addTestLayers(configs):
+	s = '''
+	layer {{
+	  name: "dataLayer"
+	  type: "HDF5Data"
+	  top: "target"
+	  {0}
+	  top: "negative"
+	  include {{
+	    phase: TEST
+	  }}
+	  hdf5_data_param {{
+	    source: "{1}"
+	    batch_size: 1
+	}}
+	  }}
+	'''
+	db = configs.db_settings[configs.db]
+	action_name = db['action_name']
+	video_name = db['video_name']
+	level = db['level']
+	database_path = db['test_database_list_path']
+	neighbors = '\n'.join([ 'top:"neighbor{0}"'.format(i) for i in xrange(configs.model['number_of_neighbors'])])
+	with open(configs.model['model_prototxt_path'], 'r') as model_file:
+		with open(configs.model['test_prototxt_path'], 'w') as test:
+			print configs.model['model_prototxt_path']
+			for action in action_name:
+				for i,video in enumerate(video_name[action]):
+					db_path = database_path.format(name=i)
+					print db_path
+					test.write(s.format(neighbors, db_path ))
+					#TODO Well breaking is not a good idea. It only writes 
+					break
+			for line in model_file:
+				test.write(line)
+		
+		
+	
 

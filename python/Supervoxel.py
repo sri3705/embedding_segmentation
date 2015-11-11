@@ -67,8 +67,10 @@ class Supervoxel(object):
 		except TypeError:
 			raise Exception('ID must be immutable (hashable)')
 		self.ID = ID
-		self.pixels = {} # frame -> set of (x,y)
-		self.colors_dict = {} # (x,y,f) -> (R, G, B) actual color in the frame		
+		#TODO removed this part for memory efficiency
+		#self.pixels = {} # frame -> set of (x,y)
+		#self.colors_dict = {} # (x,y,f) -> (R, G, B) actual color in the frame		
+		#TODO		
 		self.overlap_count = 0 #number of overlapping pixels with ground thruth
 		self.__initializeCenter()
 	
@@ -79,10 +81,12 @@ class Supervoxel(object):
 		self.number_of_pixels = 0
 
 	def addVoxel(self, x,y,t, color, label=0):
-		if t not in self.pixels.keys():
-			self.pixels[t] = set()
-		self.pixels[t].add((x,y))
-		self.colors_dict[ (x, y, t) ] = color
+		#TODO Removed this part for memory efficiency
+		#if t not in self.pixels.keys():
+		#	self.pixels[t] = set()
+		#self.pixels[t].add((x,y))
+		#self.colors_dict[ (x, y, t) ] = color
+		#TODO
 		self.sum_x += x
 		self.sum_y += y
 		self.sum_t += t

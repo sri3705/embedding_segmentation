@@ -2,14 +2,17 @@ from scipy.spatial import cKDTree
 import numpy as np
 import os.path
 from Supervoxel import *
-from utils import mkdirs
-from Annotation import Annotator
-
+from utils import *
+from Annotation import *
 from enum import Enum
+import random
+import h5py
 
 class FeatureType(Enum):
 	COLOR_HISTOGRAM = 1
 	MBH = 2
+	CLR_MBH = 3
+	CORSO = 4
 	#DEEP = 3
 
 class Segmentation(object):
@@ -91,15 +94,19 @@ class Segmentation(object):
 			self.frame_to_voxels[frame_number].add(self.supervoxels[color])
 
 		#print img.size
-		labels = self.annotator.labels
+		try:
+			labels = self.annotator.labels
+		except:
+			pass
 		for x in range(img.size[0]):
 			for y in range(img.size[1]):
 				color = img.getpixel(x, y)
 				try:
 					self.supervoxels[color].addVoxel(x, y, frame_number, orig_img.getpixel(x, y), labels[y][x][frame_number]) 	
 				except:
-					print x,y,frame_number
-					raise
+					self.supervoxels[color].addVoxel(x, y, frame_number, orig_img.getpixel(x, y), 0)
+		#			print x,y,frame_number
+		#			raise
  
 
 	def processNewFrame(self):
@@ -152,6 +159,11 @@ class Segmentation(object):
 
 	def doneProcessing(self):
 		self.supervoxels_list = self.supervoxels.values()
+
+		#For coros segmentation
+		ids = map(lambda x: (x.ID[0]+1)*10**6+(x.ID[1]+1)*10**3+(x.ID[2]+1), self.supervoxels_list)
+		self.supervoxels_list_corso = [x for (y, x) in sorted(zip(ids, self.supervoxels_list))]
+
 		self.supervoxels_list.sort(key=lambda sp: sp.overlap_count, reverse=True) #Sort supervoxels_list based of the overlap amount Largest to Lowest
 		self.in_process = False
 
@@ -166,6 +178,8 @@ class Segmentation(object):
 	
 	#For Pickling
 	def __getstate__(self):
+		if hasattr(self, "data"):
+			del self.data
 		state = {attr:getattr(self,attr) for attr in dir(self) if not attr.startswith('__') and not callable(getattr(self,attr))}
 		#state = {'supervoxels': self.supervoxels_list, 'supervoxels2': self.supervoxels_list}		
 		return state
@@ -177,7 +191,7 @@ class Segmentation(object):
 class MySegmentation(Segmentation):
 	def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', features_path = './features.txt', annotator=None, segment=None):
 		if  segment is None:
-			print original_path, segmented_path, len(annotator.labels)
+			#print original_path, segmented_path, len(annotator.labels)
 			super(MySegmentation, self).__init__(original_path, segmented_path, annotator)
 		else:
 			super(Segmentation, self).__init__(segment.original_path, segmented_path, segment)
@@ -199,7 +213,7 @@ class MySegmentation(Segmentation):
 			self.__cKDTree__ = cKDTree(np.array([sv.center() for sv in self.supervoxels_list]))
 		nearestNeighbors = self.__cKDTree__.query(np.array(supervoxel.center()), k+1)[1] # Added one to the neighbors because the target itself is included
 	
-		return set((self.supervoxels_list[i] for i in nearestNeighbors[1:]))
+		return set(self.supervoxels_list[i] for i in nearestNeighbors[1:])
 	
 	def prepareData(self, k, number_of_data, feature_vec_size):
 		feature_size = feature_vec_size * (1 + k + 1) #One for the target, k for neighbors, one for negative
@@ -277,28 +291,41 @@ class MySegmentation(Segmentation):
 		return data
 
 	def _read_features(self):
-		import csv
-		with open(path, 'r') as csvfile:
-			reader = csv.reader(csvfile, delimiter=' ', quotechar='|')
-			f1 = map(float, reader.next())
-
-			print 'feature last 10:', f1[:3], f1[-10:]
-
-			features = np.zeros((len(self.supervoxels_list), len(f1)-3)) #first three are the ids 
-			dic = {(int(f1[0]), int(f1[1]), int(f1[3])): 0}
-			features[0][...] = f1[...]
-			for i,row in enumerate(reader):
-				f1 = map(float, row)
-				dic[(int(f1[0]), int(f1[1]), int(f1[3]))] = i+1
-				features[i+1][...] = f1[3:]
-			return features, dic
+		feature_len = 192
+		features = np.zeros((len(self.supervoxels_list) ,feature_len))
+		sv2id = {sv.ID:i for i,sv in enumerate(self.supervoxels_list)}
+		print 'len(supervoxels) = %d' % features.shape[0]
+		i = 0
+		with open(self.features_path, 'r') as f:
+			for num_line, l in enumerate(f):
+				pass
+		num_line+=1
+		print "Number of lines", num_line
+		print (14,106,23) in sv2id
+		print (23,106,14) in sv2id
+		with open (self.features_path, 'r') as reader:
+			for i in xrange(num_line-1):
+				line = reader.next()
+				line = line.split()
+				sv_id = (int(line[2]), int(line[1]), int(line[0]))
+				f = np.array(map(float, line[3:]))
+				assert f.shape[0]%feature_len == 0, 'feature len(%d) is not disiable by %d' % (f.shape[0], feature_len) 
+				f = f.reshape((f.shape[0]/feature_len, feature_len))
+				f = np.mean(f, 0)
+				assert sv_id in sv2id, 'sv_id(%d,%d,%d) not in sv2id, i=%d' % (sv_id[2], sv_id[1], sv_id[0], i)
+				idx = sv2id[sv_id]			
+				features[idx][...] = f[...]
+				i+=1
+		return features
 	
 	def _extract_mbh(self, k, negative_numbers):
-		
-		features, dic = self._read_features()
-			
-		supervoxels = set(self.supervoxels_list)
+		if hasattr(self, "data"):
+			return self.data
+	
+		sv2id = {sv.ID:i for i,sv in enumerate(self.supervoxels_list)}
+		features= self._read_features()		
 		feature_len = features.shape[1] #first three numbers are the id
+		supervoxels = set(self.supervoxels_list)
 		n = len(supervoxels) * negative_numbers
 		data = {'target':self.dummyData(n, feature_len), 'negative':self.dummyData(n, feature_len)}
 		for i in range(k):
@@ -316,25 +343,120 @@ class MySegmentation(Segmentation):
 			supervoxels.update(neighbors)
 			supervoxels.add(sv)
 			idx = i*negative_numbers
-			data['target'][idx][...] = features[dic[sv.ID]][...]#sv.getFeature()
+			data['target'][idx][...] = features[sv2id[sv.ID]][...]#sv.getFeature()
 			for j, nei in enumerate(neighbors):
-				data['neighbor{0}'.format(j)][idx][...] = features[dic[nei.ID]][...]#nei.getFeature()
+				data['neighbor{0}'.format(j)][idx][...] = features[sv2id[nei.ID]][...]#nei.getFeature()
 				#data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
-			data['negative'][idx][...] = features[dic[negatives[0].ID]][...]#negatives[0].getFeature()
+			data['negative'][idx][...] = features[sv2id[negatives[0].ID]][...]#negatives[0].getFeature()
 			for neg in xrange(1, negative_numbers):
 				idx = i*negative_numbers+neg
 				data['target'][idx][...] = data['target'][idx][...]
 				for j, nei in enumerate(neighbors):
 					data['neighbor{0}'.format(j)][idx][...] = data['neighbor{0}'.format(j)][idx][...]
 					#data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
-				data['negative'][idx][...] = features[dic[negatives[neg].ID]][...]#negatives[neg].getFeature()
+				data['negative'][idx][...] = features[sv2id[neg.ID]][...]#negatives[neg].getFeature()
 								
 
 			#print data.keys()
-			return data
+		self.data = data
+		return data
 
+	def _extract_clr_mbh(self, k, negative_numbers):
+		if hasattr(self, "data"):
+			return self.data
+	
+		sv2id = {sv.ID:i for i,sv in enumerate(self.supervoxels_list)}
+		feature_len1 = len(self.supervoxels_list[0].getFeature())
+		features= self._read_features()		
+		feature_len = features.shape[1]+feature_len1 #first three numbers are the id
+		supervoxels = set(self.supervoxels_list)
+		n = len(supervoxels) * negative_numbers
+		data = {'target':self.dummyData(n, feature_len), 'negative':self.dummyData(n, feature_len)}
+		for i in range(k):
+			data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
+		for i, sv in enumerate(self.supervoxels_list):
+			neighbors = self.getKNearestSupervoxelsOf(sv, k) 
+			#print 'neighbors', len(neighbors)
+			supervoxels.difference_update(neighbors) #ALl other supervoxels except Target and its neighbors
+			#TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
+			# Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
+			negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
+			#neighbors.remove(sv)
+
+			#when everything is done we put back neighbors to the set
+			supervoxels.update(neighbors)
+			supervoxels.add(sv)
+			idx = i*negative_numbers
+			data['target'][idx][...] = np.append(features[sv2id[sv.ID]][...], sv.getFeature())#sv.getFeature()
+			for j, nei in enumerate(neighbors):
+				data['neighbor{0}'.format(j)][idx][...] = np.append(features[sv2id[nei.ID]][...], nei.getFeature())#nei.getFeature()
+				#data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
+			data['negative'][idx][...] = np.append(features[sv2id[negatives[0].ID]][...], negatives[0].getFeature())#negatives[0].getFeature()
+			for neg in xrange(1, negative_numbers):
+				idx = i*negative_numbers+neg
+				data['target'][idx][...] = data['target'][idx][...]
+				for j, nei in enumerate(neighbors):
+					data['neighbor{0}'.format(j)][idx][...] = data['neighbor{0}'.format(j)][idx][...]
+					#data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
+				data['negative'][idx][...] = np.append(features[sv2id[neg.ID]][...], negatives[neg].getFeature())#negatives[neg].getFeature()
+								
+
+			#print data.keys()
+		self.data = data
+		return data
+
+	def _read_corso_features(self):
 		
-	def getFeatures(self, k, negative_numbers=1, features_type=FeatureType.COLOR_HISTOGRAM):
+		features = h5py.File(self.features_path,'r')
+		return np.array(features['hist']).T
+
+	def _extract_corso(self, k, negative_numbers):
+		if hasattr(self, "data_corso"):
+			return self.data_corso
+	
+		sv2id = {sv.ID:i for i,sv in enumerate(self.supervoxels_list_corso)}
+		features= self._read_corso_features()	
+		print features
+		assert features.shape[1] == 42, 'features size is wrong'	
+		feature_len = features.shape[1]
+		supervoxels = set(self.supervoxels_list_corso)
+		n = len(supervoxels) * negative_numbers
+		data = {'target':self.dummyData(n, feature_len), 'negative':self.dummyData(n, feature_len)}
+		for i in range(k):
+			data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
+		for i, sv in enumerate(self.supervoxels_list_corso):
+			neighbors = self.getKNearestSupervoxelsOf(sv, k) 
+			#print 'neighbors', len(neighbors)
+			supervoxels.difference_update(neighbors) #ALl other supervoxels except Target and its neighbors
+			#TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
+			# Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
+			negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
+			#neighbors.remove(sv)
+
+			#when everything is done we put back neighbors to the set
+			supervoxels.update(neighbors)
+			supervoxels.add(sv)
+			idx = i*negative_numbers
+			data['target'][idx][...] = features[sv2id[sv.ID]][...]
+			for j, nei in enumerate(neighbors):
+				data['neighbor{0}'.format(j)][idx][...] = features[sv2id[nei.ID]][...]
+				#data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
+			data['negative'][idx][...] = features[sv2id[negatives[0].ID]][...]
+
+			for neg in xrange(1, negative_numbers):
+				idx = i*negative_numbers+neg
+				data['target'][idx][...] = data['target'][idx][...]
+				for j, nei in enumerate(neighbors):
+					data['neighbor{0}'.format(j)][idx][...] = data['neighbor{0}'.format(j)][idx][...]
+					#data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
+				data['negative'][idx][...] = features[sv2id[neg.ID]][...]
+								
+
+			#print data.keys()
+		self.data_corso = data
+		return data
+		
+	def getFeatures(self, k, negative_numbers=1, feature_type=FeatureType.COLOR_HISTOGRAM):
 		'''
 		:param arg1: number of nieghbors (k)
 		:type arg1: int
@@ -345,10 +467,14 @@ class MySegmentation(Segmentation):
 		
 		'''
 		assert k >= 2, 'K < 2: At least 2 neighbors is needed'
-		if features_type == FeatureType.COLOR_HISTOGRAM:
+		if feature_type == FeatureType.COLOR_HISTOGRAM:
 			return self._extract_color_histogram(k, negative_numbers)
-		elif features_type == FeatureType.MBH:
+		elif feature_type == FeatureType.MBH:
 			return self._extract_mbh(k, negative_numbers)
+		elif feature_type == FeatureType.CLR_MBH:
+			return self._extract_clr_mbh(k, negative_numbers)
+		elif feature_type == FeatureType.CORSO:
+			return self._extract_corso(k, negative_numbers)
 		else:
 			raise "Feature type is invalid"
 
@@ -387,8 +513,7 @@ class MyMotionSegmentation(MySegmentation):
 
 	
 
-import random
-import h5py
+
 
 class DB:
 	

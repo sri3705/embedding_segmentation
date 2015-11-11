@@ -5,13 +5,17 @@ class LogType(Enum):
 class Logger:
 	def __init__(self, log_type=LogType.PRINT, log_path=''):
 		self.type = log_type
+		if log_type == LogType.FILE:
+			self.file = open(log_path,'w')
 
 	def log(self,message):
 		if self.type == LogType.PRINT:
 			print message
 		else:
-			pass
+			self.file.write(message+'\n')
+			print message
 			#TODO file
 	def close(self):
-		pass
+		if hasattr(self, "file"):
+			self.file.close()
 		#TODO close file 

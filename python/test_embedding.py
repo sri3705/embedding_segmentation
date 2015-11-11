@@ -5,7 +5,7 @@ import random
 import time
 from configs import getConfigs
 
-conf = getConfigs(1)
+conf = getConfigs(43)
 snapshot_path = conf.solver['snapshot_prefix']
 db = conf.db_settings[conf.db]
 action = 'pour'
@@ -18,12 +18,11 @@ net_path = conf.model['model_prototxt_path']
 annotation_path = db['annotation_path'].format(action_name=action, video_name=video)
 #annotation_path = '/cs/vml3/mkhodaba/cvpr16/dataset/{name}'
 #snapshot_name = '_iter_870000.caffemodel'
-snapshot_name = '_iter_360000.caffemodel'
+snapshot_name = '_iter_25000.caffemodel'
 
 #model_name = 'model.prototxt'
-test_model_path = '/cs/vml2/mkhodaba/cvpr16/expriments/1/test.prototxt'
-snapshot_path = '/cs/vml3/mkhodaba/cvpr16/code/embedding_segmentation/snapshot/vml_gpu/256bins/'	
-
+test_model_path = '/cs/vml2/mkhodaba/cvpr16/expriments/8/test.prototxt'
+snapshot_path = conf.solver['snapshot_prefix']#'/cs/vml3/mkhodaba/cvpr16/code/embedding_segmentation/snapshot/vml_gpu/256bins/'	
 
 print net_path
 
@@ -49,6 +48,7 @@ print
 print "Done. Elapsed time: {0}".format(time.time()-start)
 start = end
 print "Computing distance matrix"
+
 distances = embeddingTester.computeDistanceMatrix()
 distances2 = embeddingTester.computeBaselineDistanceMatrix()
 
@@ -80,7 +80,7 @@ def print_map(embeddingTester, threshold, k):
 	print '\t   Ours:     ', ours_map
 	print '\t   Baseline: ', baseline_map
 
-print_map(embeddingTester, threshold, 6)
+print_map(embeddingTester, threshold, 200)
 
 res = {}
 if 1 == 2:

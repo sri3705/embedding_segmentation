@@ -1,8 +1,8 @@
 #In the name of GOD
-from utils import mkdirs, getDirs
-from Logger import LogType
+from utils import *
+from Logger import *
 import cPickle as pickle
-from Segmentation import FeatureType
+from Segmentation import *
 
 class Config:
 	def __init__(self, experiment_number=None):
@@ -27,15 +27,16 @@ class Config:
 	
 		self.model = {
 			'batch_size':		20,
-			'number_of_neighbors':	6,
-			'inner_product_output':	3*256,
+			'number_of_neighbors':	32,
+			'inner_product_output':	16,#2*(3*256+192),
 			'weight_lr_mult':	1,
 			'weight_decay_mult':	1,
 			'b_lr_mult':		2,
 			'b_decay_mult':		0,
 			'model_prototxt_path':	self.experiments_path+'/model.prototxt',
+			'test_prototxt_path':	self.experiments_path+'/test.prototxt',
 			'database_list_path':	self.experiments_path+'/database_list.txt',
-			'feature_type':		FeatureType.MBH,
+			'feature_type':		FeatureType.CORSO,#FeatureType.COLOR_HISTOGRAM#
 			
 			
 		}
@@ -43,23 +44,25 @@ class Config:
 		self.solver = {
 			'weight_decay':		0.0001,
 			'base_lr':		0.01,
-			'momentum': 		0.95,
+			'momentum': 		0.88,
 			'gamma':		0.1,
-			'power':		0.50,
-			'display':		100000,
-			'test_interval':	500,
-			'test_iter':		100,
+			'power':		0.75,
+			'display':		1000,
+			'test_interval':	1000,
+			'test_iter':		1,
 			'snapshot':		5000,
 			'lr_policy': 		"step",
-			'stepsize':		5000,
+			'stepsize':		10000,
 			'snapshot_prefix':	self.experiments_path+'/snapshot/',
-			'train_net':		self.model['model_prototxt_path'],
-			'test_net':		self.model['model_prototxt_path'],
+			'net':			self.model['test_prototxt_path'],
+			'_train_net':		self.model['model_prototxt_path'],
+			'_test_nets':		self.model['test_prototxt_path'],
 			'max_iter':		100000,
 			'_train_interval':	1000,
-			'_termination_threshold':0.000001,
+			'_termination_threshold':0.0003,
 			'_solver_prototxt_path':	self.experiments_path+'/solver.prototxt',						
 			'_model_prototxt_path':	self.model['model_prototxt_path'],
+			'_solver_log_path':	self.experiments_path+'/solver.log',
 		}
 
 		mkdirs(self.solver['snapshot_prefix'])
@@ -75,31 +78,38 @@ class Config:
 
 	def __jhmdb__(self):
 		jhmdb = {
-			'action_name':		['pour'],
-			'level':		0,
+			'action_name':		['pour'], #['pour'],
+			'level':		1,
 			'video_name':		{},
-			'frame':		29,
+			'frame':		30,
 			'frame_format':		self.frame_format,
 			'number_of_neighbors':	self.model['number_of_neighbors'],
-			'root_path':		'/cs/vml2/mkhodaba/datasets/JHMDB/frames/{action_name}/',
+			'root_path':		'/cs/vml2/mkhodaba/datasets/JHMDB/puppet_mask/{action_name}/',
 			'orig_path':		'/cs/vml2/mkhodaba/datasets/JHMDB/frames/{action_name}/{video_name}/', #+frame_format
 			'annotation_path':	'/cs/vml2/mkhodaba/datasets/JHMDB/puppet_mask/{action_name}/{video_name}/puppet_mask.mat',
-			'segmented_path':	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/data/results/images/motionsegmentation/{level:02d}/',  #+frame_format,
-			'features_path': 	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/features.txt',
+			#'segmented_path':	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/data/results/images/motionsegmentation/{level:02d}/',  #+frame_format,
+			'segmented_path':	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/segmented_frames/{action_name}/{video_name}/{level:02d}/',  #+frame_format,
+			#'features_path': 	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/features.txt',
+			'features_path': 	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/hist.mat',
 			'output_path':		'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/output/{action_name}/{video_name}/{level:02d}/{experiment_number}/', #+frame_format
 			'database_path':	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/databases/{action_name}/{video_name}/{level:02d}.h5',
 			'pickle_path':		'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/pickle/{action_name}/{video_name}/{level:02d}.p',
-
+			'test_database_list_path':	self.experiments_path+'/database_list_{name}.txt',
 			'database_list_path':	self.model['database_list_path'],
 			'feature_type':		self.model['feature_type'],
 		}		
-		num_videos = 1 #set to None for all
-		
+		start_idx = 2
+		num_videos = 3 #set to None for all
 		for action in jhmdb['action_name']:
 			#TODO this line!
-			jhmdb['video_name'][action] = getDirs(jhmdb['root_path'].format(action_name=action))[2:num_videos+2] #TODO #TODO This should be changed!!!!!!!!!!!!!
-
-
+			jhmdb['video_name'][action] = getDirs(jhmdb['root_path'].format(action_name=action))[start_idx:num_videos] #TODO #TODO This should be changed!!!!!!!!!!!!!
+			print '\n'.join(jhmdb['video_name'][action])
+		
+		
+#		for action in jhmdb['action_name']:
+#			for video in jhmdb['video_name'][action]:
+#				db_path = jhmdb['database_path'].format(action_name=action, video_name=video, level=jhmdb['level'])
+#				self.solver['_test_nets'].append(db_path)
 		return jhmdb
 
 	def save(self):
@@ -133,6 +143,8 @@ def getConfigs(experiment_num=None):
 	
 	conf = Config(experiment_num)
 	if experiment_num is not None:
+		if experiment_num == -1:
+			experiment_num = max([0]+map(int, getDirs(conf.experiments_root)))
 		conf = pickle.load(open(conf.experiments_root+str(experiment_num)+'/configs.txt', 'r'))
 	return conf
 
