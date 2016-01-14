@@ -7,11 +7,14 @@ from Annotation import JHMDBAnnotator as JA
 import time
 from configs import getConfigs
 
+
 def createDatabase(db_name, db_settings, logger):
 	if db_name == 'jhmdb':
 		createJHMDB(db_settings, logger)
 	elif db_name == 'ucf_sports':
 		createUCFSports(db_settings, logger)
+	elif db_name == 'vsb100':
+		createVSB100(db_settings, logger)
 
 def createJHMDB(db_settings, logger):
 	frame_format = db_settings['frame_format']
@@ -134,34 +137,188 @@ def createJHMDB2(db_settings, logger):
 
 
 def write_db_list(db_settings, logger):
-	action_name = db_settings['action_name']
-	video_name = db_settings['video_name'] 
-	database_path = db_settings['database_path']
-	database_list_path = db_settings['database_list_path']
-	test_database_list_path = db_settings['test_database_list_path']
-	level = db_settings['level']
-	with open(database_list_path, 'w') as db_list:
-		for action in action_name:
-			for i,video in enumerate(video_name[action]):
-				db_path = database_path.format(action_name=action, video_name=video, level=level)
-				db_list.write(db_path+'\n');
-				with open(test_database_list_path.format(name=i), 'w') as f:
-					f.write(db_path)
+	if db_settings['db'] == 'jhmdb':
+		action_name = db_settings['action_name']
+		video_name = db_settings['video_name'] 
+		database_path = db_settings['database_path']
+		database_list_path = db_settings['database_list_path']
+		test_database_list_path = db_settings['test_database_list_path']
+		level = db_settings['level']
+		with open(database_list_path, 'w') as db_list:
+			for action in action_name:
+				for i,video in enumerate(video_name[action]):
+					db_path = database_path.format(action_name=action, video_name=video, level=level)
+					db_list.write(db_path+'\n');
+					with open(test_database_list_path.format(name=i), 'w') as f:
+						f.write(db_path)
+	elif db_settings['db'] == 'vsb100':
+		action_name = db_settings['action_name'] 
+		database_path = db_settings['database_path']
+		database_list_path = db_settings['database_list_path']
+		test_database_list_path = db_settings['test_database_list_path']
+		with open(database_list_path, 'w') as db_list:
+			db_path = database_path.format(action_name=action_name)
+			db_list.write(db_path+'\n');
+		with open(test_database_list_path, 'w') as db_test_list:
+			db_path = database_path.format(action_name=action_name+'_test')
+			db_test_list.write(db_path+'\n');
+		
 def createUCFSports(db_settings, log_path):
 	pass
 
 	
+def createVSB100(db_settings, logger):
+	'''
+	This method creates the database needed for caffe.
+	'''
+	action = 'vw_commercial'
+	database_path = db_settings['database_path']
+	features_path = db_settings['features_path'] #'/cs/vml3/mkhodaba/cvpr16/Graph_construction/Features/{action_name}_features.mat'
+	video_info_path = db_settings['video_info_path'] #'/cs/vml3/mkhodaba/cvpr16/Graph_construction/Features/{action_name}_vidinfo.mat'
+	#database_path = '/cs/vml2/mkhodaba/cvpr16/datasets/VSB100/databases/{action_name}.h5'
+	#features_path = '/cs/vml3/mkhodaba/cvpr16/Graph_construction/Features/{action_name}_features.mat'
+	#video_info_path = '/cs/vml3/mkhodaba/cvpr16/Graph_construction/Features/{action_name}_vidinfo.mat'
+	features_path = features_path.format(action_name=action)
+	video_info_path = video_info_path.format(action_name=action)
+	database_path = database_path.format(action_name=action)
+	neighbors_num = db_settings['number_of_neighbors']
+	neighbor_frames_num = db_settings['neighbor_frames_num']
 
-
-
-
-
-
-
-
-
-
+	from scipy.io import loadmat
+	import numpy as np
+	from scipy.spatial import cKDTree
+	from random import randint
+	features = loadmat(features_path)['features'] #number_of_frames x number_of_supervoxels_per_frame x feature_length
+	video_info = loadmat(video_info_path) #video_info = [mapped, labelledlevelvideo, numberofsuperpixelsperframe]
+						#mapped -> #number_of_frames x number_of_supervoxels_per_frame
+						#labelledlevelvideo -> height x width x number_of_frames
+						#framebelong -> total_number_of_super_pixels x 1
+						#labelsatframe -> total_number_of_super_pixels x 1
+	kdtrees = []
+	labelledlevelvideo = video_info['labelledlevelvideo']	
+	numberofsuperpixelsperframe = video_info['numberofsuperpixelsperframe']
+	frames_num = len(features)
+	superpixels_num = len(features[0]) #per frame
+	feature_len = len(features[0][0])
+	print frames_num, superpixels_num, feature_len
 	
+	#centers[f][i] -> h,w of center
+	centers = np.zeros((frames_num, superpixels_num, 2)) #[[[0.0,0.0] for i in xrange(superpixels_num)] for j in xrange(frames_num)] #frames_num x superpixels_num x 2
+	pixels_count = [[0 for i in xrange(superpixels_num)] for j in xrange(frames_num)] #frames_num x superpixels_num
+	height = len(labelledlevelvideo)
+	width = len(labelledlevelvideo[0])
+	logger.log('Computing centers of superpixels ...')
+	for f in xrange(frames_num):
+		logger.log('Frame %d' % f)
+		for h in xrange(height):
+			for w in xrange(width):
+				idx = labelledlevelvideo[h][w][f]-1
+				centers[f][idx][0] += h		
+				centers[f][idx][1] += w
+				pixels_count[f][idx] += 1
+		for i in xrange(len(centers[f])):
+			centers[f][i][0] /= pixels_count[f][i]
+			centers[f][i][1] /= pixels_count[f][i]
+		logger.log('Building kdtree')
+		kdtree = cKDTree(np.array(centers[f]))
+		kdtrees.append(kdtree)
+	framebelong = video_info['framebelong']
+	labelsatframe = video_info['labelsatframe']
+	target_superpixel_num = 0
+	for f in xrange(neighbor_frames_num, frames_num-neighbor_frames_num):
+		target_superpixel_num += numberofsuperpixelsperframe[0,f]
+	n = target_superpixel_num#len(framebelong)
+	superpixel_skip_num = 0
+	for f in xrange(neighbor_frames_num):
+			superpixel_skip_num += numberofsuperpixelsperframe[0,f]
+	data = {'target':np.zeros((n, feature_len)), 'negative':np.zeros((n, feature_len))}
+	total_number_of_neighbors = neighbors_num  * (2*neighbor_frames_num+1)
+	for i in range(total_number_of_neighbors):
+		data['neighbor{0}'.format(i)] = np.zeros((n, feature_len))
+	superpixel_idx = 0
+	logger.log('Creating the database of superpixels:features')
+	for f in xrange(neighbor_frames_num, frames_num-neighbor_frames_num): #TODO: start from a frame that has at least neighbor_frames_num number of frames before it
+		logger.log('Frame %d' % f)
+		logger.log('There are %d superpixels in in this frame' % numberofsuperpixelsperframe[0,f])
+		for i in xrange(numberofsuperpixelsperframe[0,f]):
+			assert f == framebelong[superpixel_idx+superpixel_skip_num]-1, 'Something went wrong in mapping superpixel index to frames/label at frame (1)'
+			assert i == labelsatframe[superpixel_idx+superpixel_skip_num]-1, 'Something went wrong in mapping superpixel index to frames/label at frame (2)'
+			data['target'][superpixel_idx][...] = features[f][i][...]
+			center = centers[f][i]
+			frame_start = max(0, f-neighbor_frames_num)
+			frame_end = min(frames_num, f+neighbor_frames_num)
+			neighbor_idx = 0
+			for target_frame in xrange(frame_start, frame_end+1):
+				if f == target_frame:
+					nearest_neighbors = kdtrees[target_frame].query(center, neighbors_num+1)[1] # Added one to the neighbors because the target itself is included
+					nearest_neighbors = nearest_neighbors[1:]
+				else:
+					nearest_neighbors = kdtrees[target_frame].query(center, neighbors_num)[1]
+				#neighbor_idx = range(neighbor_frames_num*(target_frame-frame_start), neighbor_frames_num*(target_frame-frame_start+1)-1)
+				#print neighbor_frames_num, target_frame, frame_start, frame_end				
+				#print neighbor_idx
+				#assert len(nearest_neighbors) == len(neighbor_idx), 'Number of neighbors mismatch ( %d != %d ). f: %d, i: %d, target_frame: %d' % (len(nearest_neighbors), len(neighbor_idx), f, i, target_frame)
+				for idx in nearest_neighbors:
+					data['neighbor{0}'.format(neighbor_idx)][superpixel_idx][...] = features[target_frame][idx][...]
+					neighbor_idx += 1
+			assert neighbor_idx == total_number_of_neighbors, "Number of neighbors doesn't match ( %d != %d )" % (neighbor_idx, total_number_of_neighbors)
+			#TODO: print "Random frame ... (Warning: if it's taknig too long stop it! \n Apparantly, the number of neighboring frames are relatively large \n with respect to the number of video frames)"			
+			frame_random = randint(0, frames_num-1)
+			while frame_end-frame_start < 0.5*frames_num and frame_start <= frame_random <= frame_end:
+				frame_random = randint(0, frames_num-1)
+			#print frame_random
+			idx_random = randint(0, numberofsuperpixelsperframe[0, frame_random]-1)
+			data['negative'][superpixel_idx][...] = features[frame_random][idx_random][...]
+			superpixel_idx += 1
+
+	assert superpixel_idx == target_superpixel_num, "Total number of superpixels doesn't match (%d != %d)" % (superpixel_idx, total_superpixel_num)
+	db_path = database_path.format(action_name=action)
+	print db_path
+	database = DB(db_path)
+	for name, datum in data.iteritems():
+		database.save(datum, name)
+	database.close()
+
+	#Creating the database for extracting the final representations. It just needs to have the targets nothing else.
+	n = len(framebelong)
+	data = {'target':np.zeros((n, feature_len)), 'negative':np.zeros((n, feature_len))}
+	total_number_of_neighbors = neighbors_num  * (2*neighbor_frames_num+1)
+	for i in range(total_number_of_neighbors):
+		data['neighbor{0}'.format(i)] = np.zeros((n, feature_len))
+	superpixel_idx = 0
+	for f in xrange(1,frames_num-1):
+		for i in xrange(numberofsuperpixelsperframe[0,f]):
+			data['target'][superpixel_idx][...] = features[f][i][...]
+			superpixel_idx +=1
+	database_path = db_settings['database_path']
+	db_path = database_path.format(action_name=(action+'_test'))
+	print 'test db path', db_path
+	database = DB(db_path)
+	for name, datum in data.iteritems():
+		database.save(datum, name)
+	database.close()
+
+	write_db_list(db_settings, logger)
+
+	logger.log('Creating database Done!')
+	#TODO: 
+	# 1-Read the features, vid-labels mat files
+	# 2-map each superpixel to an ID
+	# 3-create a kdtree for superpixels of each frame
+	# 4-loop over all superpixels of all frames. 
+	# 	4.1-for each superpixel loop over current, previous, next frames and find neighbors
+	#	4.2- concatenate features then push it in the database
+	# done
+
+
+
+
+
+
+
+
+
+#This method is deprecated	
 def create_dbs():
 	configs = getConfigs()
 	

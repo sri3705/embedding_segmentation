@@ -9,7 +9,6 @@ import sys
 
 def setup_experiment(extract_features=False, visualization=False):
 	# need to extract features?
-	print 'what?'
 	config = getConfigs()
 	print "Experiment number:", config.experiment_number
 	logger = Logger(config.log_type, config.log_path)
@@ -28,11 +27,11 @@ def setup_experiment(extract_features=False, visualization=False):
 	if extract_features:
 		#TODO: ^^^^ add neighbor_num to db_settigs shit!
 		print 'extract features'
-		createDatabase(config.db, config.db_settings[config.db], logger)
+		createDatabase(config.db, config.db_settings, logger)
 		#TODO create the database list
 		#TODO: probably in configs need to set how to merge them: for now separately
 	else:
-		write_db_list(config.db_settings[config.db], logger)
+		write_db_list(config.db_settings, logger)
 	logger.close()
 
 	#TODO save configs

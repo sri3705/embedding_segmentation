@@ -149,24 +149,33 @@ def addTestLayers(configs):
 	}}
 	  }}
 	'''
-	db = configs.db_settings[configs.db]
+	db = configs.db_settings
 	action_name = db['action_name']
-	video_name = db['video_name']
-	level = db['level']
 	database_path = db['test_database_list_path']
 	neighbors = '\n'.join([ 'top:"neighbor{0}"'.format(i) for i in xrange(configs.model['number_of_neighbors'])])
-	with open(configs.model['model_prototxt_path'], 'r') as model_file:
-		with open(configs.model['test_prototxt_path'], 'w') as test:
-			print configs.model['model_prototxt_path']
-			for action in action_name:
-				for i,video in enumerate(video_name[action]):
-					db_path = database_path.format(name=i)
-					print db_path
-					test.write(s.format(neighbors, db_path ))
-					#TODO Well breaking is not a good idea. It only writes 
-					break
-			for line in model_file:
-				test.write(line)
+	if db['db'] == 'jhmdb':
+		level = db['level']
+		video_name = db['video_name']
+		with open(configs.model['model_prototxt_path'], 'r') as model_file:
+			with open(configs.model['test_prototxt_path'], 'w') as test:
+				print configs.model['model_prototxt_path']
+				for action in action_name:
+					for i,video in enumerate(video_name[action]):
+						db_path = database_path.format(name=i)
+						print db_path
+						test.write(s.format(neighbors, db_path ))
+						#TODO Well breaking is not a good idea. It only writes 
+						break
+				for line in model_file:
+					test.write(line)
+	elif db['db'] == 'vsb100':
+		with open(configs.model['model_prototxt_path'], 'r') as model_file:
+			with open(configs.model['test_prototxt_path'], 'w') as test:
+				print configs.model['model_prototxt_path']
+				db_path = database_path.format(action_name=action_name)
+				test.write(s.format(neighbors, db_path))
+				for line in model_file:
+					test.write(line)
 		
 		
 	
