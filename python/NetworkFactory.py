@@ -50,7 +50,7 @@ class Network:
 		self.net.inner_product_negative = self.getInnerProduct('negative', 'inner_product_negative', 1)
 		for i in range(0, self.number_of_neighbors):
 			layer = self.getInnerProduct('neighbor{0}'.format(i), 'inner_product_neighbor{0}'.format(i), 1)
-			setattr(self.net, 'inner_product_neighbor{0}'.format(i), layer)
+			setattr(self.net, 'inner_product_neighbor{0}'.format(i), layer) 
 		
 		#ReLU
 		self.net.relu_target = L.ReLU(self.net.inner_product_target, name='relu_target', in_place=True)
@@ -60,6 +60,14 @@ class Network:
 					name='relu_neighbor{0}'.format(i),
 					in_place=True)
 			setattr(self.net, 'relu_neighbor{0}'.format(i), layer)
+		
+		#self.net.normalize_target = L.NormalizeLayer(self.net.inner_product_target, name='normalize_target', in_place=True)
+		#self.net.normalize_negative = L.NormalizeLayer(self.net.inner_product_negative, name='normalize_negative', in_place=True)
+		#for i in range(0, self.number_of_neighbors):
+			layer = L.NormalizeLayer(getattr(self.net, 'inner_product_neighbor{0}'.format(i)), 
+					name='normalize_neighbor{0}'.format(i),
+					in_place=True)
+			setattr(self.net, 'normalize_neighbor{0}'.format(i), layer)
 		
 		#Second layer of inner product
 		#self.net.inner_product2_target = self.getInnerProduct('inner_product_target', 'inner_product2_target', 2)
@@ -96,6 +104,8 @@ class Network:
 						operation=P.Eltwise.SUM, #  SUM
 						coeff=list([coeff for i in range(self.number_of_neighbors)]))
 		
+		#self.net.
+
 		#Target - Negative
 		self.net.target_negative_diff = L.Eltwise(self.net.inner_product_target, self.net.inner_product_negative,
 								name='target_negative_diff',
