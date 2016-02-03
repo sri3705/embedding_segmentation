@@ -155,11 +155,11 @@ if __name__ == '__main__':
 		train_loss= np.append(train_loss, solver.net.blobs['loss'].data)
 		if it % train_interval == 0:
 			logger.log( 'Iteration'+str( it)+ '...' )
-			current_loss = np.mean(train_loss[-1000:])
+			current_loss = np.mean(train_loss[-train_interval:])
 			prev_loss, diff_loss = current_loss, prev_loss-current_loss
-			logger.log( 'Average Train Loss [last 1000]: {0} -- Train Loss Std:{1}'.format(current_loss, np.std(train_loss[-1000:])))
-			logger.log('Minimum Train Loss [last 1000]:{0}'.format(np.amin(train_loss[-1000:])))	
-			logger.log('Improvement [last 1000]: {0}'.format(diff_loss))
+			logger.log( 'Average Train Loss [last {0}]: {1} -- Train Loss Std:{1}'.format(train_interval,current_loss, np.std(train_loss[-train_interval:])))
+			logger.log('Minimum Train Loss [last {0}]:{1}'.format(train_interval,np.amin(train_loss[-train_interval:])))	
+			logger.log('Improvement [last {0}]: {1}'.format(train_interval,diff_loss))
 
 		#TODO TESTING!!!!
 		'''

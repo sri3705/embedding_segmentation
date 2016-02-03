@@ -18,8 +18,9 @@ class FeatureType(Enum):
 class Segmentation(object):
 	
 
-	def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', annotator=None, segment=None):
+	def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', annotator=None, segment=None, labelledlevelvideo_path=''):
 		if segment is not None:
+			print 'SEGMENT is not None'
 			attrs = [a for a in dir(segment) if not a.startswith('__') and not callable(getattr(segment,a))]
 			for attr in attrs:
 				print attr
@@ -27,11 +28,14 @@ class Segmentation(object):
 			return
 		else:
 			assert annotator is not None or not isinstance(annotator, Annotator), 'Annotator should be given'
+		print 'Segment is NONE'
+		print 'YOLO ***********************', original_path
 		self.supervoxels = {} # ID -> Supervoxel
 		self.frame_to_voxels = {} # frame (int) -> Supervoxel
 		self.current_frame = 1
 		self.original_path = original_path
 		self.segmented_path = segmented_path
+        	self.labelledlevelvideo_path = labelledlevelvideo_path
 		self.__cKDTRee__ = None #cKDTree() for finding the neighbors. This attribute is set in donePrecessing method
 		self.supervoxels_list = None # list of all supervoxels. This attribute is set in donePrecessing method
 		self.annotator = annotator #an object of the class of Annotator
@@ -166,7 +170,24 @@ class Segmentation(object):
 
 		self.supervoxels_list.sort(key=lambda sp: sp.overlap_count, reverse=True) #Sort supervoxels_list based of the overlap amount Largest to Lowest
 		self.in_process = False
+		self.createLabelledlevelvideoData()
 
+	def createLabelledlevelvideoData(self):
+		segmented_path = self.segmented_path.format(self.current_frame-1)
+		orig_img = MyImage(segmented_path)
+		width, height = orig_img.size
+		mapped = np.zeros(( height, width, self.current_frame-1))
+		self.colors_to_id = {}
+		for i, sv in enumerate(self.supervoxels_list):
+		    self.colors_to_id[sv.ID] = i+1
+		for f in xrange(self.current_frame-1):
+			img = MyImage(self.segmented_path.format(f+1))
+			for h in xrange(height):
+				for w in xrange(width):
+					mapped[h][w][f]= self.colors_to_id[img.getpixel(w,h)]
+		from scipy.io import savemat
+		labelledlevelvideo = mapped
+		savemat(self.labelledlevelvideo_path, {'labelledlevelvideo':labelledlevelvideo, 'total_number_of_supervoxels':len(self.colors_to_id)})
 		
 		
 
@@ -189,12 +210,13 @@ class Segmentation(object):
 			setattr(self, key, dic[key])
 
 class MySegmentation(Segmentation):
-	def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', features_path = './features.txt', annotator=None, segment=None):
+	def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', features_path = './features.txt', annotator=None, segment=None, labelledlevelvideo_path=''):
 		if  segment is None:
 			#print original_path, segmented_path, len(annotator.labels)
-			super(MySegmentation, self).__init__(original_path, segmented_path, annotator)
+			print original_path, segmented_path, labelledlevelvideo_path
+			super(MySegmentation, self).__init__(original_path, segmented_path, annotator, None, labelledlevelvideo_path)
 		else:
-			super(Segmentation, self).__init__(segment.original_path, segmented_path, segment)
+			super(Segmentation, self).__init__(segment.original_path, segmented_path, segment, labelledlevelvideo_path)
 		self.features_path = features_path
 
 	def getNearestSupervoxelsOf(self, supervoxel, threshold=30):

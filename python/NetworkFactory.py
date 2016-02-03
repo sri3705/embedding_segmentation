@@ -64,10 +64,10 @@ class Network:
 		#self.net.normalize_target = L.NormalizeLayer(self.net.inner_product_target, name='normalize_target', in_place=True)
 		#self.net.normalize_negative = L.NormalizeLayer(self.net.inner_product_negative, name='normalize_negative', in_place=True)
 		#for i in range(0, self.number_of_neighbors):
-			layer = L.NormalizeLayer(getattr(self.net, 'inner_product_neighbor{0}'.format(i)), 
-					name='normalize_neighbor{0}'.format(i),
-					in_place=True)
-			setattr(self.net, 'normalize_neighbor{0}'.format(i), layer)
+			# layer = L.NormalizeLayer(getattr(self.net, 'inner_product_neighbor{0}'.format(i)), 
+					# name='normalize_neighbor{0}'.format(i),
+					# in_place=True)
+			# setattr(self.net, 'normalize_neighbor{0}'.format(i), layer)
 		
 		#Second layer of inner product
 		#self.net.inner_product2_target = self.getInnerProduct('inner_product_target', 'inner_product2_target', 2)

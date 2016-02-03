@@ -3,11 +3,11 @@ from Annotation import JHMDBAnnotator as JA, Evaluator as EVAL
 import numpy as np
 import random
 import time
-from configs import getConfigs
+from configs import * 
 
-conf = getConfigs(43)
+conf = getConfigs(-1)
 snapshot_path = conf.solver['snapshot_prefix']
-db = conf.db_settings[conf.db]
+db = conf.db_settings
 action = 'pour'
 video = db['video_name'][action][0]
 level = db['level']
@@ -18,10 +18,11 @@ net_path = conf.model['model_prototxt_path']
 annotation_path = db['annotation_path'].format(action_name=action, video_name=video)
 #annotation_path = '/cs/vml3/mkhodaba/cvpr16/dataset/{name}'
 #snapshot_name = '_iter_870000.caffemodel'
-snapshot_name = '_iter_25000.caffemodel'
+snapshot_name = '_iter_5000.caffemodel'
 
 #model_name = 'model.prototxt'
-test_model_path = '/cs/vml2/mkhodaba/cvpr16/expriments/8/test.prototxt'
+test_model_path = conf.model['test_prototxt_path']
+# test_model_path = '/cs/vml2/mkhodaba/cvpr16/expriments/8/test.prototxt'
 snapshot_path = conf.solver['snapshot_prefix']#'/cs/vml3/mkhodaba/cvpr16/code/embedding_segmentation/snapshot/vml_gpu/256bins/'	
 
 print net_path

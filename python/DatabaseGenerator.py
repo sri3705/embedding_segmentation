@@ -31,6 +31,7 @@ def createJHMDB(db_settings, logger):
 	database_list_path = db_settings['database_list_path']
 	features_path = db_settings['features_path']
 	feature_type = db_settings['feature_type']
+	labelledlevelvideo_path = db_settings['labelledlevelvideo_path']
 	#TODO: maybe we should save them segarately
 	#TODO: write a merge segment function?
 	logger.log('*** Segment parsing ***')
@@ -42,10 +43,11 @@ def createJHMDB(db_settings, logger):
 				annotator = JA(annotation_path.format(action_name=action, video_name=video))
 			except:
 				annotator = None
+			formatted_labelledlevelvideo_path = labelledlevelvideo_path.format(action_name=action, video_name=video, level=level)
 			segmentor = MySegmentation(orig_path.format(action_name=action, video_name=video, level=level)+frame_format,
 							segmented_path.format(action_name=action, video_name=video, level=level)+frame_format,
 							features_path.format(action_name=action, video_name=video, level=level),
-							annotator)
+							annotator, None, formatted_labelledlevelvideo_path)
 			segmentor.setFeatureType(feature_type)
 			for i in xrange(frame):
 				logger.log('frame {0}'.format(i+1))
@@ -188,8 +190,9 @@ def createVSB100(db_settings, logger):
     import numpy as np
     from scipy.spatial import cKDTree
     from random import randint
+    from sklearn.preprocessing import StandardScaler
     try:
-        features = loadmat(features_path)['features'] #number_of_frames x number_of_supervoxels_per_frame x feature_length
+        features = loadmat(features_path)['features'] #number_of_frames x number_of_supervoxels_per_frame x feature_length 
     except:
         import h5py
         features = h5py.File(features_path)
@@ -203,10 +206,29 @@ def createVSB100(db_settings, logger):
     labelledlevelvideo = video_info['labelledlevelvideo']	
     numberofsuperpixelsperframe = video_info['numberofsuperpixelsperframe']
     numberofsuperpixelsperframe = numberofsuperpixelsperframe[0]  
-    print features.shape
     frames_num = len(features)
     superpixels_num = len(features[0]) #per frame
     feature_len = len(features[0][0])
+    print features[0][0][1:50]
+    normalize_data = False 
+    if normalize_data: 
+        features_normalized = np.zeros((np.sum(numberofsuperpixelsperframe), feature_len))
+        print features_normalized.shape 
+        idx = 0
+        for f in xrange(frames_num):
+            for s in xrange(numberofsuperpixelsperframe[f]):
+                features_normalized[idx][...] = features[f][s][...]
+                idx += 1
+        clf = StandardScaler()
+        features_normalized_2 = clf.fit_transform(features_normalized)
+        idx = 0
+        for f in xrange(frames_num):
+            for s in xrange(numberofsuperpixelsperframe[f]):
+                features[f][s][...] = features_normalized_2[idx][...]
+                idx +=1
+
+    print features[0][0][1:50]
+    print features.shape
     print frames_num, superpixels_num, feature_len
     print numberofsuperpixelsperframe
     #centers[f][i] -> h,w of center
@@ -266,16 +288,16 @@ def createVSB100(db_settings, logger):
                 if f == target_frame:
                     nearest_neighbors = kdtrees[target_frame].query(center, neighbors_num+1)[1] # Added one to the neighbors because the target itself is included
                     nearest_neighbors = nearest_neighbors[1:]
-                    if i == 0 and f == 5:
-                        video_size = labelledlevelvideo.shape
-                        img = Image.new('RGB', (video_size[1], video_size[0]))
-                        for h in xrange(video_size[0]):
-                           for w in xrange(video_size[1]):
-                               if labelledlevelvideo[h][w][5]-1 in nearest_neighbors:
-                                   img.putpixel((w,h), (255,20,20))
-                               if 0==labelledlevelvideo[h][w][5]-1:
-                                   img.putpixel((w,h), (20,255,20))
-                        img.save('/cs/vml2/mkhodaba/cvpr16/test/pixels.jpg')
+                    # if i == 0 and f == 5:
+                        # video_size = labelledlevelvideo.shape
+                        # img = Image.new('RGB', (video_size[1], video_size[0]))
+                        # for h in xrange(video_size[0]):
+                           # for w in xrange(video_size[1]):
+                               # if labelledlevelvideo[h][w][5]-1 in nearest_neighbors:
+                                   # img.putpixel((w,h), (255,20,20))
+                               # if 0==labelledlevelvideo[h][w][5]-1:
+                                   # img.putpixel((w,h), (20,255,20))
+                        # img.save('/cs/vml2/mkhodaba/cvpr16/test/pixels.jpg')
                 else:
                     nearest_neighbors = kdtrees[target_frame].query(center, neighbors_num)[1]
                 for idx in nearest_neighbors:
