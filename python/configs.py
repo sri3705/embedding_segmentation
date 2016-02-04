@@ -49,7 +49,7 @@ class Config:
             'net':			self.model['test_prototxt_path'],
             '_train_net':		self.model['model_prototxt_path'],
             '_test_nets':		self.model['test_prototxt_path'],
-            'max_iter':		5000,
+            'max_iter':		10000,
             '_train_interval':	500,
             '_termination_threshold':0.0004,
             '_solver_prototxt_path':	self.experiments_path+'/solver.prototxt',						
@@ -71,7 +71,7 @@ class Config:
         jhmdb = {
             'db':				'jhmdb',
             'action_name':			['vw_commercial'], #['pour'],
-            'level':			03,
+            'level':			10,
             'video_name':			{},
             'frame':			24,
             'frame_format':			self.frame_format,
