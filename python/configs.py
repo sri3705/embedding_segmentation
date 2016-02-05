@@ -5,15 +5,20 @@ import cPickle as pickle
 from Segmentation import *
 
 class Config:
-    def __init__(self, experiment_number=None):
+    def __init__(self, experiment_number=None, comment=None):
         self.experiments_root = '/cs/vml2/mkhodaba/cvpr16/expriments/'
+        self.comment = comment
         if not experiment_number:
             self.__create_config__()
 
     def __create_config__(self):
         self.frame_format = '{0:05d}.ppm'
         self.experiment_number = max([0]+map(int, getDirs(self.experiments_root)))+1
-        self.experiments_path = self.experiments_root+'/{0}/'.format(self.experiment_number)
+        if self.comment:
+            self.experiments_path = self.experiments_root+'/{0}-{1}/'.format(self.experiment_number,self.comment)
+        else:
+            self.experiments_path = self.experiments_root+'/{0}/'.format(self.experiment_number)
+
         mkdirs(self.experiments_path)
         self.log_path = self.experiments_path+'/log.txt'
         self.log_type = LogType.FILE			
@@ -24,6 +29,7 @@ class Config:
             'number_of_neighbors':	8, #number of neighbors around the target superpixel
             'inner_product_output':	128, #2*(3*256+192),
             'weight_lr_mult':	1,
+            'number_of_negatives':  20,
             'weight_decay_mult':	1,
             'b_lr_mult':		2,
             'b_decay_mult':		0,
@@ -162,12 +168,18 @@ class Config:
 		#print s
 	#	return s
 
-def getConfigs(experiment_num=None):
-	conf = Config(experiment_num)
+def getConfigs(experiment_num=None, comment=None):
+	conf = Config(experiment_num, comment)
 	if experiment_num is not None:
 		if experiment_num == -1:
 			experiment_num = max([0]+map(int, getDirs(conf.experiments_root)))
-		conf = pickle.load(open(conf.experiments_root+str(experiment_num)+'/configs.txt', 'r'))
+        experiment_folder_name = ''
+        for dir_name in getDirs(conf.experiments_root):
+            if dir_name.startswith(str(experiment_num)):
+                experiment_folder_name = dir_name
+                break
+		# conf = pickle.load(open(conf.experiments_root+str(experiment_num)+'/configs.txt', 'r'))
+		conf = pickle.load(open(conf.experiments_root+experiment_folder_name+'configs.txt', 'r'))
 	return conf
 
 

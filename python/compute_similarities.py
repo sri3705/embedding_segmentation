@@ -31,7 +31,7 @@ def getRepresentations(conf, net, superpixels_num):
     assert data.shape[0] == 1, 'batch size != ? ... this assert is not important'
     feature_len = data.shape[1]
     reps = np.zeros((superpixels_num, feature_len))
-    negative_numbers = 1
+    negative_numbers = conf.model['number_of_negatives'] 
     for i in xrange(superpixels_num*negative_numbers):
         if i%1000==1:
             print i
