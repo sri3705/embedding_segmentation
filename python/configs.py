@@ -22,7 +22,7 @@ class Config:
         self.model = {
             'batch_size':		32,
             'number_of_neighbors':	8, #number of neighbors around the target superpixel
-            'inner_product_output':	768, #2*(3*256+192),
+            'inner_product_output':	2*3*256, #2*(3*256+192),
             'weight_lr_mult':	1,
             'weight_decay_mult':	1,
             'b_lr_mult':		2,
@@ -42,7 +42,7 @@ class Config:
             'display':		    500,
             'test_interval':	100000,
             'test_iter':		1,
-            'snapshot':		500,
+            'snapshot':		1000,
             'lr_policy': 		"step",
             'stepsize':		1000,
             'snapshot_prefix':	self.experiments_path+'/snapshot/',
@@ -71,19 +71,22 @@ class Config:
         jhmdb = {
             'db':				'jhmdb',
             'action_name':			['vw_commercial'], #['pour'],
-            'level':			10,
+            'level':			3,
             'video_name':			{},
             'frame':			24,
             'frame_format':			self.frame_format,
             'number_of_neighbors':		self.model['number_of_neighbors'],
             # 'root_path':			'/cs/vml2/mkhodaba/datasets/JHMDB/puppet_mask/{action_name}/',
             'root_path':			'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/',
-            'orig_path':			'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/',
+            # 'orig_path':			'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/',
+            #Actually next line is the optical flow
+            'orig_path':			'/cs/vml2/mkhodaba/datasets/VSB100/Test_flow/{action_name}/',
             # 'annotation_path':		'/cs/vml2/mkhodaba/datasets/JHMDB/puppet_mask/{action_name}/{video_name}/puppet_mask.mat',
             'annotation_path':		'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/puppet_mask.mat',
             # 'segmented_path':	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/data/results/images/motionsegmentation/{level:02d}/',  #+frame_format,
             # 'segmented_path':		'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/segmented_frames/{action_name}/{video_name}/{level:02d}/',  #+frame_format,
             'segmented_path':		'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/seg/{level:02d}/',  #+frame_format,
+            'optical_flow_path':		'/cs/vml2/mkhodaba/datasets/VSB100/Test_flow/{action_name}/',
             #'features_path': 	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/features.txt',
             'features_path':	 	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/hist.mat',
             'output_path':			'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/output/{action_name}/{video_name}/{level:02d}/{experiment_number}/', #+frame_format
@@ -136,7 +139,11 @@ class Config:
         dic = {action_name:--, level:--, video_name:--}
         '''
         pickle.dump(self, open(self.experiments_path+'configs.txt', 'w'))
-
+        with open(self.experiments_path+'configs.readable', 'w') as config_txt:
+            import pprint
+            pp = pprint.PrettyPrinter(indent=4,stream=config_txt)
+            dic = {'db':self.db, 'model': self.db_settings, 'solver':self.solver}
+            pp.pprint(dic)
 	#def __str__(self):
 	#	from yaml import dump
 	#	s = ''+\

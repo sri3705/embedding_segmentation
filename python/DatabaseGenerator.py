@@ -32,6 +32,7 @@ def createJHMDB(db_settings, logger):
 	features_path = db_settings['features_path']
 	feature_type = db_settings['feature_type']
 	labelledlevelvideo_path = db_settings['labelledlevelvideo_path']
+        optical_flow_path = db_settings['optical_flow_path']
 	#TODO: maybe we should save them segarately
 	#TODO: write a merge segment function?
 	logger.log('*** Segment parsing ***')
@@ -43,11 +44,13 @@ def createJHMDB(db_settings, logger):
 				annotator = JA(annotation_path.format(action_name=action, video_name=video))
 			except:
 				annotator = None
-			formatted_labelledlevelvideo_path = labelledlevelvideo_path.format(action_name=action, video_name=video, level=level)
 			segmentor = MySegmentation(orig_path.format(action_name=action, video_name=video, level=level)+frame_format,
 							segmented_path.format(action_name=action, video_name=video, level=level)+frame_format,
 							features_path.format(action_name=action, video_name=video, level=level),
-							annotator, None, formatted_labelledlevelvideo_path)
+							annotator, 
+                            				None,
+                            				labelledlevelvideo_path.format(action_name=action, video_name=video, level=level),
+                            				optical_flow_path.format(action_name=action, video_name=video, level=level)+frame_format)
 			segmentor.setFeatureType(feature_type)
 			for i in xrange(frame):
 				logger.log('frame {0}'.format(i+1))

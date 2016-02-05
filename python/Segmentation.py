@@ -13,12 +13,13 @@ class FeatureType(Enum):
 	MBH = 2
 	CLR_MBH = 3
 	CORSO = 4
+    	CLR_HOF = 5
 	#DEEP = 3
 
 class Segmentation(object):
 	
 
-	def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', annotator=None, segment=None, labelledlevelvideo_path=''):
+	def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', annotator=None, segment=None, labelledlevelvideo_path='', optical_flow_path=''):
 		if segment is not None:
 			print 'SEGMENT is not None'
 			attrs = [a for a in dir(segment) if not a.startswith('__') and not callable(getattr(segment,a))]
@@ -34,6 +35,7 @@ class Segmentation(object):
 		self.frame_to_voxels = {} # frame (int) -> Supervoxel
 		self.current_frame = 1
 		self.original_path = original_path
+        	self.optical_flow_path = optical_flow_path
 		self.segmented_path = segmented_path
         	self.labelledlevelvideo_path = labelledlevelvideo_path
 		self.__cKDTRee__ = None #cKDTree() for finding the neighbors. This attribute is set in donePrecessing method
@@ -81,12 +83,14 @@ class Segmentation(object):
 
 
 	
-	def addSupervoxels(self, original_img_path, segmented_img_path, frame_number):
+	def addSupervoxels(self, original_img_path, segmented_img_path, frame_number, optical_flow_path=None):
 		self.in_process = True
 		frame_number = frame_number-1
 		orig_img = MyImage(original_img_path)
 		img = MyImage(segmented_img_path)
 		voxel_colors = img.getcolors()
+		if optical_flow_path is not None:
+			optical_flow_img = MyImage(optical_flow_path)
 		#print "Colors"
 		#for c in voxel_colors:
 		#	print c
@@ -109,6 +113,10 @@ class Segmentation(object):
 					self.supervoxels[color].addVoxel(x, y, frame_number, orig_img.getpixel(x, y), labels[y][x][frame_number]) 	
 				except:
 					self.supervoxels[color].addVoxel(x, y, frame_number, orig_img.getpixel(x, y), 0)
+				if optical_flow_path is not None:
+				    	flow = optical_flow_img.getpixel(x,y)
+				    	self.supervoxels[color].addOpticalFlow(flow)
+                
 		#			print x,y,frame_number
 		#			raise
  
@@ -116,7 +124,8 @@ class Segmentation(object):
 	def processNewFrame(self):
 		orig_path = self.original_path.format(self.current_frame)
 		seg_path = self.segmented_path.format(self.current_frame)
-		self.addSupervoxels(orig_path, seg_path, self.current_frame)
+        	optical_flow_path = self.optical_flow_path.format(self.current_frame)
+		self.addSupervoxels(orig_path, seg_path, self.current_frame, optical_flow_path)
 		self.current_frame += 1
 
 	#TODO: Re-implement this one!
@@ -210,13 +219,13 @@ class Segmentation(object):
 			setattr(self, key, dic[key])
 
 class MySegmentation(Segmentation):
-	def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', features_path = './features.txt', annotator=None, segment=None, labelledlevelvideo_path=''):
+	def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', features_path = './features.txt', annotator=None, segment=None, labelledlevelvideo_path='', optical_flow_path=''):
 		if  segment is None:
 			#print original_path, segmented_path, len(annotator.labels)
 			print original_path, segmented_path, labelledlevelvideo_path
-			super(MySegmentation, self).__init__(original_path, segmented_path, annotator, None, labelledlevelvideo_path)
+			super(MySegmentation, self).__init__(original_path, segmented_path, annotator, None, labelledlevelvideo_path, optical_flow_path)
 		else:
-			super(Segmentation, self).__init__(segment.original_path, segmented_path, segment, labelledlevelvideo_path)
+			super(Segmentation, self).__init__(segment.original_path, segmented_path, segment, labelledlevelvideo_path, optical_flow_path)
 		self.features_path = features_path
 
 	def getNearestSupervoxelsOf(self, supervoxel, threshold=30):
@@ -273,6 +282,42 @@ class MySegmentation(Segmentation):
 #		else:
 #			raise "Feature type is wrong!"
 		
+	def _extract_color_histogram(self, k, negative_numbers):
+		assert k >= 2, 'K < 2: At least 2 neighbors is needed'
+		supervoxels = set(self.supervoxels_list)
+		feature_len = len(self.supervoxels_list[0].getFeature()+self.supervoxels_list[0].getOpticalFlow())
+		n = len(supervoxels) * negative_numbers
+		data = {'target':self.dummyData(n, feature_len), 'negative':self.dummyData(n, feature_len)}
+		for i in range(k):
+			data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
+		for i, sv in enumerate(self.supervoxels_list):
+			neighbors = self.getKNearestSupervoxelsOf(sv, k) 
+			#print 'neighbors', len(neighbors)
+			supervoxels.difference_update(neighbors) #ALl other supervoxels except Target and its neighbors
+			#TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
+			# Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
+			negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
+			#neighbors.remove(sv)
+
+			#when everything is done we put back neighbors to the set
+			supervoxels.update(neighbors)
+			supervoxels.add(sv)
+			idx = i*negative_numbers
+			data['target'][idx][...] = sv.getFeature()+sv.getOpticalFlow()
+			for j, nei in enumerate(neighbors):
+				data['neighbor{0}'.format(j)][idx][...] = nei.getFeature()+nei.getOpticalFlow()
+				#data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
+			data['negative'][idx][...] = negatives[0].getFeature()+negatives[0].getOpticalFlow()
+			for neg in xrange(1, negative_numbers):
+				idx = i*negative_numbers+neg
+				data['target'][idx][...] = data['target'][idx][...]
+				for j, nei in enumerate(neighbors):
+					data['neighbor{0}'.format(j)][idx][...] = data['neighbor{0}'.format(j)][idx][...]
+					#data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
+				data['negative'][idx][...] = negatives[neg].getFeature()+negatives[neg].getOpticalFlow()
+		#print data.keys()
+		return data
+
 	def _extract_color_histogram(self, k, negative_numbers):
 		assert k >= 2, 'K < 2: At least 2 neighbors is needed'
 
@@ -497,6 +542,8 @@ class MySegmentation(Segmentation):
 			return self._extract_clr_mbh(k, negative_numbers)
 		elif feature_type == FeatureType.CORSO:
 			return self._extract_corso(k, negative_numbers)
+        	elif feature_type == FeatureType.CLR_HOF:
+            		return self._extract_clr_hof(k, negative_numbers)
 		else:
 			raise "Feature type is invalid"
 
