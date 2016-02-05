@@ -180,7 +180,7 @@ if __name__ == '__main__':
 		#	print 'Test Loss:', solver.test_nets[0].blobs['loss'].data
 		#	test_loss = solver.test_nets[0].blobs['loss'].data
 		'''
-	if conf.db == 'jhmdb':
+	if 1 == 2 and conf.db == 'jhmdb':
 		dataset_path = db['pickle_path'].format(action_name='dadada', video_name='baba', level=1)
 		segment = pickle.load(open(dataset_path,'r'))
 		reps = getRepresentations(solver, segment, segment_idx)
