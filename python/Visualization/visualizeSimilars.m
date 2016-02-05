@@ -5,7 +5,7 @@ function visualizeSimilars(sup, exp_num)
     load('/cs/vml3/mkhodaba/cvpr16/dataset/vw_commercial/b1/03.mat')
     %load('/cs/vml3/mkhodaba/cvpr16/Graph_construction/Features/STM_similarities.mat')
     %load('/cs/vml3/mkhodaba/cvpr16/Graph_construction/Features/anna_color_similarities.mat')
-    load(['/cs/vml2/mkhodaba/cvpr16/expriments/', exp_num ,'/similarities.mat'])
+    load(['/cs/vml2/smuralid/projects/eccv16/experiments/', exp_num ,'/similarities.mat'])
     %load('/cs/vml3/mkhodaba/cvpr16/Graph_construction/Features/allsegsvw_commercial.mat'])
     %similarities = -1 * similarities;
     mkdir(folder_name)

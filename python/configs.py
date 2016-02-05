@@ -6,7 +6,7 @@ from Segmentation import *
 
 class Config:
     def __init__(self, experiment_number=None):
-        self.experiments_root = '/cs/vml2/mkhodaba/cvpr16/expriments/'
+        self.experiments_root = '/cs/vml2/smuralid/projects/eccv16/experiments/'
         if not experiment_number:
             self.__create_config__()
 
@@ -16,7 +16,7 @@ class Config:
         self.experiments_path = self.experiments_root+'/{0}/'.format(self.experiment_number)
         mkdirs(self.experiments_path)
         self.log_path = self.experiments_path+'/log.txt'
-        self.log_type = LogType.FILE			
+        self.log_type = LogType.FILE
         # self.db = 'vsb100' # self.db = 'jhmdb' or 'vsb100'
         self.db = 'jhmdb'
         self.model = {
@@ -30,7 +30,7 @@ class Config:
             'model_prototxt_path':	self.experiments_path+'/model.prototxt',
             'test_prototxt_path':	self.experiments_path+'/test.prototxt',
             'database_list_path':	self.experiments_path+'/database_list.txt',
-            'feature_type':		FeatureType.COLOR_HISTOGRAM#FeatureType.CORSO,#FeatureType.COLOR_HISTOGRAM#	
+            'feature_type':		FeatureType.COLOR_HISTOGRAM#FeatureType.CORSO,#FeatureType.COLOR_HISTOGRAM#
         }
 
         self.solver = {
@@ -52,7 +52,7 @@ class Config:
             'max_iter':		10000,
             '_train_interval':	500,
             '_termination_threshold':0.0004,
-            '_solver_prototxt_path':	self.experiments_path+'/solver.prototxt',						
+            '_solver_prototxt_path':	self.experiments_path+'/solver.prototxt',
             '_model_prototxt_path':	self.model['model_prototxt_path'],
             '_solver_log_path':	self.experiments_path+'/solver.log',
         }
@@ -71,7 +71,7 @@ class Config:
         jhmdb = {
             'db':				'jhmdb',
             'action_name':			['vw_commercial'], #['pour'],
-            'level':			10,
+            'level':			3,
             'video_name':			{},
             'frame':			24,
             'frame_format':			self.frame_format,
@@ -86,22 +86,22 @@ class Config:
             'segmented_path':		'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/seg/{level:02d}/',  #+frame_format,
             #'features_path': 	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/features.txt',
             'features_path':	 	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/hist.mat',
-            'output_path':			'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/output/{action_name}/{video_name}/{level:02d}/{experiment_number}/', #+frame_format
+            'output_path':			'/cs/vml2/smuralid/projects/eccv16/output/{action_name}/{video_name}/{level:02d}/{experiment_number}/', #+frame_format
             # 'database_path':		'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/databases/{action_name}/{video_name}/{level:02d}.h5',
-            'database_path':		'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/{level:02d}.h5',
+            'database_path':		'/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/{level:02d}.h5',
             # 'pickle_path':			'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/pickle/{action_name}/{video_name}/{level:02d}.p',
-            'pickle_path':			'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/{level:02d}.p',
-            'labelledlevelvideo_path':			'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/{level:02d}.mat',
+            'pickle_path':			'/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/{level:02d}.p',
+            'labelledlevelvideo_path':			'/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/{level:02d}.mat',
             'test_database_list_path':	self.experiments_path+'/database_list_{name}.txt',
             'database_list_path':		self.model['database_list_path'],
             'feature_type':			self.model['feature_type'],
-        }		
+        }
         start_idx = 0
         num_videos = 2 #set to None for all
         for action in jhmdb['action_name']:
         #TODO this line!
             jhmdb['video_name'][action] = getDirs(jhmdb['root_path'].format(action_name=action))[start_idx:num_videos] #TODO #TODO This should be changed!!!!!!!!!!!!!
-            print '\n'.join(jhmdb['video_name'][action])	
+            print '\n'.join(jhmdb['video_name'][action])
         #		for action in jhmdb['action_name']:
         #			for video in jhmdb['video_name'][action]:
         #				db_path = jhmdb['database_path'].format(action_name=action, video_name=video, level=jhmdb['level'])
@@ -122,7 +122,7 @@ class Config:
                 'neighbor_frames_num':		2,
                 'test_database_list_path':	self.experiments_path+'/database_list_test.txt',
                 'database_list_path':		self.model['database_list_path'],
-            }	
+            }
             vsb100['database_path'] = '/cs/vml2/mkhodaba/cvpr16/datasets/VSB100/databases/{action_name}' + '_' + \
                     str(self.model['number_of_neighbors']) + '_' + \
                     str(vsb100['neighbor_frames_num']) +'.h5'
@@ -149,7 +149,7 @@ class Config:
 	#	db['experiment_number'] = self.experiment_number
 		#for key in db.keys():
 		#	if key.endswith('_path'):
-		#		
+		#
 		#		db[key] = db[key].format(**db)
 	#	s+='db settings:\n{0}\n'.format(dump(db, default_flow_style=False, indent=4))
 		#print s
