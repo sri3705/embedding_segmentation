@@ -150,8 +150,8 @@ class HistogramSupervoxel(Supervoxel):
 
 	def addOpticalFlow(self, flow):
 		self.ch1_hist[flow[0]] +=1
-		self.ch2_hist[flow[1]] +=1
-		self.ch3_hist[flow[2]] +=1
+		self.ch2_hist[flow[2]] +=1
+		# self.ch3_hist[flow[2]] +=1
 
 
 	def __updateHistogram(self, color):
@@ -159,7 +159,7 @@ class HistogramSupervoxel(Supervoxel):
 		self.G_hist[color[1]] += 1		
 		self.B_hist[color[2]] += 1		
 
-    	def getFeature(self, number_of_bins=256, optical_flow_bins=256):
+    	def getFeature(self, number_of_bins=256):
 		bin_width = 256/number_of_bins
 		bin_num = -1
 		r_hist = [0 for i in xrange(number_of_bins)]
@@ -174,19 +174,17 @@ class HistogramSupervoxel(Supervoxel):
 		color_histogram = [i*1.0/self.number_of_pixels for i in r_hist+g_hist+b_hist]
         	return color_histogram
 
-    	def getOpticaFlow(optical_flow_bins=256):
-		bin_width = 256/number_of_bins
+    	def getOpticalFlow(self,optical_flow_bins=256):
+		bin_width = 256/optical_flow_bins
 		bin_num = -1
 		ch1_hist = [0 for i in xrange(optical_flow_bins)]
 		ch2_hist = ch1_hist[:]
-		ch3_hist = ch1_hist[:]
 		for i in xrange(256):
 			if i%bin_width == 0:
 			        bin_num+=1
 			ch1_hist[bin_num]+=self.ch1_hist[i]
 			ch2_hist[bin_num]+=self.ch2_hist[i]
-			ch3_hist[bin_num]+=self.ch3_hist[i]
-		optical_flow = [i*1.0/self.number_of_pixels for i in ch1_hist+ch2_hist+ch3_hist]
+		optical_flow = [i*1.0/self.number_of_pixels for i in ch1_hist+ch2_hist]
 		return optical_flow
 
 

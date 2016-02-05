@@ -31,11 +31,13 @@ def getRepresentations(conf, net, superpixels_num):
     assert data.shape[0] == 1, 'batch size != ? ... this assert is not important'
     feature_len = data.shape[1]
     reps = np.zeros((superpixels_num, feature_len))
-    for i in xrange(superpixels_num):
+    negative_numbers = 1
+    for i in xrange(superpixels_num*negative_numbers):
         if i%1000==1:
             print i
         net.forward()
-        reps[i][...] = net.blobs['inner_product_target'].data[...]
+        if i%negative_numbers == 0:
+                reps[i/negative_numbers][...] = net.blobs['inner_product_target'].data[...]
         # print net.blobs['inner_product_target'].data[1:10]
     return reps
 
@@ -54,15 +56,15 @@ def getLastAddedFile(path):
     return files[-2]
 
 def computeSimilarities(config_id):
-    print 'Experiment number:', config_id
     conf = getConfigs(config_id)
     snapshot_path = conf.solver['snapshot_prefix']
     caffemodel_path = getLastAddedFile(snapshot_path + '/')
-    print "last snapshot is:", caffemodel_path
     caffe.set_mode_gpu()
     db_settings = conf.db_settings
     test_model_path = conf.model['test_prototxt_path']
     test_model =  caffe.Net(test_model_path, caffemodel_path, caffe.TEST)
+    print "last snapshot is:", caffemodel_path
+    print 'Experiment number:', conf.experiment_number 
     print 'creating model'
     if conf.db == 'vsb100':
         print 'vsb100'

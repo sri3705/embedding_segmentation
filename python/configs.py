@@ -22,7 +22,7 @@ class Config:
         self.model = {
             'batch_size':		32,
             'number_of_neighbors':	8, #number of neighbors around the target superpixel
-            'inner_product_output':	2*3*256, #2*(3*256+192),
+            'inner_product_output':	128, #2*(3*256+192),
             'weight_lr_mult':	1,
             'weight_decay_mult':	1,
             'b_lr_mult':		2,
@@ -30,7 +30,7 @@ class Config:
             'model_prototxt_path':	self.experiments_path+'/model.prototxt',
             'test_prototxt_path':	self.experiments_path+'/test.prototxt',
             'database_list_path':	self.experiments_path+'/database_list.txt',
-            'feature_type':		FeatureType.COLOR_HISTOGRAM#FeatureType.CORSO,#FeatureType.COLOR_HISTOGRAM#	
+            'feature_type':		FeatureType.HOF,#FeatureType.CORSO,#FeatureType.COLOR_HISTOGRAM#	
         }
 
         self.solver = {
@@ -42,7 +42,7 @@ class Config:
             'display':		    500,
             'test_interval':	100000,
             'test_iter':		1,
-            'snapshot':		1000,
+            'snapshot':		9500,
             'lr_policy': 		"step",
             'stepsize':		1000,
             'snapshot_prefix':	self.experiments_path+'/snapshot/',
@@ -78,9 +78,9 @@ class Config:
             'number_of_neighbors':		self.model['number_of_neighbors'],
             # 'root_path':			'/cs/vml2/mkhodaba/datasets/JHMDB/puppet_mask/{action_name}/',
             'root_path':			'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/',
-            # 'orig_path':			'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/',
+            'orig_path':			'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/',
             #Actually next line is the optical flow
-            'orig_path':			'/cs/vml2/mkhodaba/datasets/VSB100/Test_flow/{action_name}/',
+            # 'orig_path':			'/cs/vml2/mkhodaba/datasets/VSB100/Test_flow/{action_name}/',
             # 'annotation_path':		'/cs/vml2/mkhodaba/datasets/JHMDB/puppet_mask/{action_name}/{video_name}/puppet_mask.mat',
             'annotation_path':		'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/puppet_mask.mat',
             # 'segmented_path':	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/data/results/images/motionsegmentation/{level:02d}/',  #+frame_format,
