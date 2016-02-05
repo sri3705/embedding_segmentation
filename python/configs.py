@@ -5,15 +5,20 @@ import cPickle as pickle
 from Segmentation import *
 
 class Config:
-    def __init__(self, experiment_number=None):
-        self.experiments_root = '/cs/vml2/smuralid/projects/eccv16/experiments/'
+    def __init__(self, experiment_number=None, comment=None):
+        self.experiments_root = '/cs/vml2/mkhodaba/cvpr16/expriments/'
+        self.comment = comment
         if not experiment_number:
             self.__create_config__()
 
     def __create_config__(self):
         self.frame_format = '{0:05d}.ppm'
         self.experiment_number = max([0]+map(int, getDirs(self.experiments_root)))+1
-        self.experiments_path = self.experiments_root+'/{0}/'.format(self.experiment_number)
+        if self.comment:
+            self.experiments_path = self.experiments_root+'/{0}-{1}/'.format(self.experiment_number,self.comment)
+        else:
+            self.experiments_path = self.experiments_root+'/{0}/'.format(self.experiment_number)
+
         mkdirs(self.experiments_path)
         self.log_path = self.experiments_path+'/log.txt'
         self.log_type = LogType.FILE
@@ -22,15 +27,16 @@ class Config:
         self.model = {
             'batch_size':		32,
             'number_of_neighbors':	8, #number of neighbors around the target superpixel
-            'inner_product_output':	768, #2*(3*256+192),
+            'inner_product_output':	128, #2*(3*256+192),
             'weight_lr_mult':	1,
+            'number_of_negatives':  20,
             'weight_decay_mult':	1,
             'b_lr_mult':		2,
             'b_decay_mult':		0,
             'model_prototxt_path':	self.experiments_path+'/model.prototxt',
             'test_prototxt_path':	self.experiments_path+'/test.prototxt',
             'database_list_path':	self.experiments_path+'/database_list.txt',
-            'feature_type':		FeatureType.COLOR_HISTOGRAM#FeatureType.CORSO,#FeatureType.COLOR_HISTOGRAM#
+            'feature_type':		FeatureType.HOF,#FeatureType.CORSO,#FeatureType.COLOR_HISTOGRAM#
         }
 
         self.solver = {
@@ -42,7 +48,7 @@ class Config:
             'display':		    500,
             'test_interval':	100000,
             'test_iter':		1,
-            'snapshot':		500,
+            'snapshot':		9500,
             'lr_policy': 		"step",
             'stepsize':		1000,
             'snapshot_prefix':	self.experiments_path+'/snapshot/',
@@ -79,19 +85,22 @@ class Config:
             # 'root_path':			'/cs/vml2/mkhodaba/datasets/JHMDB/puppet_mask/{action_name}/',
             'root_path':			'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/',
             'orig_path':			'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/',
+            #Actually next line is the optical flow
+            # 'orig_path':			'/cs/vml2/mkhodaba/datasets/VSB100/Test_flow/{action_name}/',
             # 'annotation_path':		'/cs/vml2/mkhodaba/datasets/JHMDB/puppet_mask/{action_name}/{video_name}/puppet_mask.mat',
             'annotation_path':		'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/puppet_mask.mat',
             # 'segmented_path':	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/data/results/images/motionsegmentation/{level:02d}/',  #+frame_format,
             # 'segmented_path':		'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/segmented_frames/{action_name}/{video_name}/{level:02d}/',  #+frame_format,
             'segmented_path':		'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/seg/{level:02d}/',  #+frame_format,
+            'optical_flow_path':		'/cs/vml2/mkhodaba/datasets/VSB100/Test_flow/{action_name}/',
             #'features_path': 	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/features.txt',
             'features_path':	 	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/hist.mat',
-            'output_path':			'/cs/vml2/smuralid/projects/eccv16/output/{action_name}/{video_name}/{level:02d}/{experiment_number}/', #+frame_format
+            'output_path':			'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/output/{action_name}/{video_name}/{level:02d}/{experiment_number}/', #+frame_format
             # 'database_path':		'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/databases/{action_name}/{video_name}/{level:02d}.h5',
-            'database_path':		'/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/{level:02d}.h5',
+            'database_path':		'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/{level:02d}.h5',
             # 'pickle_path':			'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/pickle/{action_name}/{video_name}/{level:02d}.p',
-            'pickle_path':			'/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/{level:02d}.p',
-            'labelledlevelvideo_path':			'/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/{level:02d}.mat',
+            'pickle_path':			'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/{level:02d}.p',
+            'labelledlevelvideo_path':			'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/{level:02d}.mat',
             'test_database_list_path':	self.experiments_path+'/database_list_{name}.txt',
             'database_list_path':		self.model['database_list_path'],
             'feature_type':			self.model['feature_type'],
@@ -136,7 +145,11 @@ class Config:
         dic = {action_name:--, level:--, video_name:--}
         '''
         pickle.dump(self, open(self.experiments_path+'configs.txt', 'w'))
-
+        with open(self.experiments_path+'configs.readable', 'w') as config_txt:
+            import pprint
+            pp = pprint.PrettyPrinter(indent=4,stream=config_txt)
+            dic = {'db':self.db, 'model': self.db_settings, 'solver':self.solver}
+            pp.pprint(dic)
 	#def __str__(self):
 	#	from yaml import dump
 	#	s = ''+\
@@ -155,12 +168,18 @@ class Config:
 		#print s
 	#	return s
 
-def getConfigs(experiment_num=None):
-	conf = Config(experiment_num)
+def getConfigs(experiment_num=None, comment=None):
+	conf = Config(experiment_num, comment)
 	if experiment_num is not None:
 		if experiment_num == -1:
 			experiment_num = max([0]+map(int, getDirs(conf.experiments_root)))
-		conf = pickle.load(open(conf.experiments_root+str(experiment_num)+'/configs.txt', 'r'))
+        experiment_folder_name = ''
+        for dir_name in getDirs(conf.experiments_root):
+            if dir_name.startswith(str(experiment_num)):
+                experiment_folder_name = dir_name
+                break
+		# conf = pickle.load(open(conf.experiments_root+str(experiment_num)+'/configs.txt', 'r'))
+		conf = pickle.load(open(conf.experiments_root+experiment_folder_name+'configs.txt', 'r'))
 	return conf
 
 

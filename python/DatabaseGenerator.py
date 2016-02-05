@@ -31,6 +31,8 @@ def createJHMDB(db_settings, logger):
 	database_list_path = db_settings['database_list_path']
 	features_path = db_settings['features_path']
 	feature_type = db_settings['feature_type']
+	labelledlevelvideo_path = db_settings['labelledlevelvideo_path']
+        optical_flow_path = db_settings['optical_flow_path']
 	#TODO: maybe we should save them segarately
 	#TODO: write a merge segment function?
 	logger.log('*** Segment parsing ***')
@@ -45,7 +47,10 @@ def createJHMDB(db_settings, logger):
 			segmentor = MySegmentation(orig_path.format(action_name=action, video_name=video, level=level)+frame_format,
 							segmented_path.format(action_name=action, video_name=video, level=level)+frame_format,
 							features_path.format(action_name=action, video_name=video, level=level),
-							annotator)
+							annotator,
+                            				None,
+                            				labelledlevelvideo_path.format(action_name=action, video_name=video, level=level),
+                            				optical_flow_path.format(action_name=action, video_name=video, level=level)+frame_format)
 			segmentor.setFeatureType(feature_type)
 			for i in xrange(frame):
 				logger.log('frame {0}'.format(i+1))
@@ -188,7 +193,7 @@ def createVSB100(db_settings, logger):
     import numpy as np
     from scipy.spatial import cKDTree
     from random import randint
-    from IPython.core.debugger import Tracer
+    from sklearn.preprocessing import StandardScaler
     try:
         features = loadmat(features_path)['features'] #number_of_frames x number_of_supervoxels_per_frame x feature_length
     except:
@@ -208,6 +213,26 @@ def createVSB100(db_settings, logger):
     frames_num = len(features)
     superpixels_num = len(features[0]) #per frame
     feature_len = len(features[0][0])
+    print features[0][0][1:50]
+    normalize_data = False
+    if normalize_data:
+        features_normalized = np.zeros((np.sum(numberofsuperpixelsperframe), feature_len))
+        print features_normalized.shape
+        idx = 0
+        for f in xrange(frames_num):
+            for s in xrange(numberofsuperpixelsperframe[f]):
+                features_normalized[idx][...] = features[f][s][...]
+                idx += 1
+        clf = StandardScaler()
+        features_normalized_2 = clf.fit_transform(features_normalized)
+        idx = 0
+        for f in xrange(frames_num):
+            for s in xrange(numberofsuperpixelsperframe[f]):
+                features[f][s][...] = features_normalized_2[idx][...]
+                idx +=1
+
+    print features[0][0][1:50]
+    print features.shape
     print frames_num, superpixels_num, feature_len
     print numberofsuperpixelsperframe
     #centers[f][i] -> h,w of center
