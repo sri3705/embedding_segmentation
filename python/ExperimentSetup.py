@@ -38,13 +38,12 @@ def setup_experiment(extract_features=False, visualization=False, comment=None):
    config.save()
 
 if __name__=='__main__':
-   if "-f" in sys.argv:
-      extract_features = True
-   else:
-      extract_features = False
-   comment = ''
-   if "-m" in sys.argv:
-       i = sys.argv.index('-m')
-       comment = sys.argv[i+1]
-   print "extract_features = ", extract_features
-   setup_experiment(extract_features=extract_features, visualization=False, comment=comment)
+    if "-f" in sys.argv:
+       extract_features = True
+    else:
+       extract_features = False
+    comment = ''
+    i = sys.argv.index('-m')
+    comment = sys.argv[i+1]
+    print "extract_features = ", extract_features
+    setup_experiment(extract_features=extract_features, visualization=False, comment=comment)
