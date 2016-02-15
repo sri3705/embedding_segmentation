@@ -175,10 +175,10 @@ def buildTrees():
         print 'frame', f
         for h in xrange(height):
             for w in xrange(width):
-				idx = labels[h][w][f]-1
-				centers[f][idx][0] += h		
-				centers[f][idx][1] += w
-				pixels_count[f][idx] += 1
+                idx = labels[h][w][f]-1
+                centers[f][idx][0] += h		
+                centers[f][idx][1] += w
+                pixels_count[f][idx] += 1
         for i in xrange(numberofsuperpixelsperframe[f]):
             centers[f][i][0] /= pixels_count[f][i]
             centers[f][i][1] /= pixels_count[f][i]

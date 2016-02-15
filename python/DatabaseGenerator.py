@@ -31,6 +31,7 @@ def createJHMDB(db_settings, logger):
 	database_list_path = db_settings['database_list_path']
 	features_path = db_settings['features_path']
 	feature_type = db_settings['feature_type']
+	number_of_negatives = db_settings['number_of_negatives']
 	labelledlevelvideo_path = db_settings['labelledlevelvideo_path']
         optical_flow_path = db_settings['optical_flow_path']
 	#TODO: maybe we should save them segarately
@@ -66,7 +67,7 @@ def createJHMDB(db_settings, logger):
 			logger.log('*** Collecting features / Creating databases ***')
 			db_path = database_path.format(action_name=action, video_name=video, level=level)
 			database = DB(db_path)
-			features = segmentor.getFeatures(neighbor_num,feature_type=feature_type)
+			features = segmentor.getFeatures(neighbor_num,negative_numbers=number_of_negatives,feature_type=feature_type)
 			for name, data in features.iteritems():
 				database.save(data, name)
 			database.close()
@@ -267,7 +268,7 @@ def createVSB100(db_settings, logger):
     n = target_superpixel_num#len(framebelong)
     superpixel_skip_num = 0
     for f in xrange(neighbor_frames_num):
-            superpixel_skip_num += numberofsuperpixelsperframe[f]
+        superpixel_skip_num += numberofsuperpixelsperframe[f]
     data = {'target':np.zeros((n, feature_len)), 'negative':np.zeros((n, feature_len))}
     total_number_of_neighbors = neighbors_num  * (2*neighbor_frames_num+1)
     for i in range(total_number_of_neighbors):
@@ -316,8 +317,6 @@ def createVSB100(db_settings, logger):
             # nearest_neighbors = kdtrees[(f+10)%frames_num].query(center, 4*neighbors_num)[1]
             nearest_neighbors = kdtrees[f].query(center, 5*neighbors_num)[1]
             idx_random = nearest_neighbors[-1] #It's the nearest of farthest superpixels to this one
-            if i == 10:
-                print 'f, i, superpixel_idx, idx_random', f, i, superpixel_idx, idx_random
             data['negative'][superpixel_idx][...] = features[f][idx_random][...]
 
     assert superpixel_idx+1 == target_superpixel_num, "Total number of superpixels doesn't match (%d != %d)" % (superpixel_idx, target_superpixel_num)
