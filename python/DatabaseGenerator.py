@@ -274,10 +274,11 @@ def createVSB100(db_settings, logger):
     superpixel_skip_num = 0
     n_neg = 10
     for f in xrange(neighbor_frames_num):
-            superpixel_skip_num += numberofsuperpixelsperframe[f]
+        superpixel_skip_num += numberofsuperpixelsperframe[f]
     data = {'target':np.zeros((n*n_neg, feature_len)), 'negative':np.zeros((n*n_neg, feature_len))}
     #data = {'target':np.zeros((n, feature_len)), 'negative':np.zeros((n, feature_len))}
     #Tracer()()
+    total_number_of_neighbors = neighbors_num  * (2*neighbor_frames_num+1)
     total_number_of_neighbors = neighbors_num  * (2*neighbor_frames_num+1)
     for i in range(total_number_of_neighbors):
         data['neighbor{0}'.format(i)] = np.zeros((n*n_neg, feature_len))
