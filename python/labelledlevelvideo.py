@@ -5,7 +5,8 @@ import glob
 
 level = '06'
 orig_path = '/cs/vml3/mkhodaba/cvpr16/dataset/vw_commercial/b1/seg/{}/'.format(level)
-out_path = '/cs/vml2/mkhodaba/cvpr16/VSB100/VideoProcessingTemp/vw_commercial/labelledlevelvideo.mat'
+out_path = '/cs/vml3/mkhodaba/cvpr16/dataset/vw_commercial/b1/seg/{}/labelledlevelvideo.mat'.format(level)
+# out_path = '/cs/vml2/mkhodaba/cvpr16/VSB100/VideoProcessingTemp/vw_commercial/labelledlevelvideo.mat'
 
 img = Image.open(glob.glob(orig_path+"*.ppm")[0])
 size = img.size

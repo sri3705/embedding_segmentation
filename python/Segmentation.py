@@ -59,7 +59,7 @@ class Segmentation(object):
             else:
                 last = mid-1
         return first
-        
+
     def getLabels(self,threshold):
         '''
         :return: an array of length n (number of supervoxels). return[i] is False if 
@@ -81,7 +81,7 @@ class Segmentation(object):
         return range(idx+1)
 
 
-    
+
     def addSupervoxels(self, original_img_path, segmented_img_path, frame_number, optical_flow_path=None):
         self.in_process = True
         frame_number = frame_number-1
@@ -113,12 +113,12 @@ class Segmentation(object):
                 except:
                     self.supervoxels[color].addVoxel(x, y, frame_number, orig_img.getpixel(x, y), 0)
                 if optical_flow_path is not None:
-                        flow = optical_flow_img.getpixel(x,y)
+                    flow = optical_flow_img.getpixel(x,y)
                         self.supervoxels[color].addOpticalFlow(flow)
-                
+
         #            print x,y,frame_number
         #            raise
- 
+
 
     def processNewFrame(self):
         orig_path = self.original_path.format(self.current_frame)
@@ -196,15 +196,15 @@ class Segmentation(object):
         from scipy.io import savemat
         labelledlevelvideo = mapped
         savemat(self.labelledlevelvideo_path, {'labelledlevelvideo':labelledlevelvideo, 'total_number_of_supervoxels':len(self.colors_to_id)})
-        
-        
+
+
 
     def getSupervoxelAt(self, x, y, t):
         pixel = (x,y)
         for sv in self.frame_to_voxels[t]:
             if pixel in sv.pixels[t]:
                 return sv
-    
+
     #For Pickling
     def __getstate__(self):
         if hasattr(self, "data"):
@@ -242,9 +242,9 @@ class MySegmentation(Segmentation):
         if not hasattr(self, 'cKDTree'):
             self.__cKDTree__ = cKDTree(np.array([sv.center() for sv in self.supervoxels_list]))
         nearestNeighbors = self.__cKDTree__.query(np.array(supervoxel.center()), k+1)[1] # Added one to the neighbors because the target itself is included
-    
+
         return set(self.supervoxels_list[i] for i in nearestNeighbors[1:])
-    
+
     def prepareData(self, k, number_of_data, feature_vec_size):
         feature_size = feature_vec_size * (1 + k + 1) #One for the target, k for neighbors, one for negative
         data = np.arange(number_of_data*feature_size)
@@ -273,7 +273,7 @@ class MySegmentation(Segmentation):
 
     def setFeatureType(self, feature_type):
         self.feature_type = feature_type
-    
+
 #    def _extract_features_from_supervoxel_(self, sv):
 #        if self.feature_type == FeatureType.COLOR_HISTOGRAM:
 #            return sv.getFeature()
@@ -315,7 +315,7 @@ class MySegmentation(Segmentation):
                 data['negative'][new_idx][...] = negatives[neg].getOpticalFlow()
         #print data.keys()
         return data
-        
+
     def _extract_clr_hof(self, k, negative_numbers):
         assert k >= 2, 'K < 2: At least 2 neighbors is needed'
         supervoxels = set(self.supervoxels_list)
@@ -386,7 +386,7 @@ class MySegmentation(Segmentation):
                     data['neighbor{0}'.format(j)][idx][...] = data['neighbor{0}'.format(j)][idx][...]
                     #data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
                 data['negative'][idx][...] = negatives[neg].getFeature()
-                                
+
 
         #print data.keys()
         return data
@@ -418,11 +418,11 @@ class MySegmentation(Segmentation):
                 features[idx][...] = f[...]
                 i+=1
         return features
-    
+
     def _extract_mbh(self, k, negative_numbers):
         if hasattr(self, "data"):
             return self.data
-    
+
         sv2id = {sv.ID:i for i,sv in enumerate(self.supervoxels_list)}
         features= self._read_features()        
         feature_len = features.shape[1] #first three numbers are the id
@@ -456,7 +456,7 @@ class MySegmentation(Segmentation):
                     data['neighbor{0}'.format(j)][idx][...] = data['neighbor{0}'.format(j)][idx][...]
                     #data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
                 data['negative'][idx][...] = features[sv2id[neg.ID]][...]#negatives[neg].getFeature()
-                                
+
 
             #print data.keys()
         self.data = data
@@ -465,7 +465,7 @@ class MySegmentation(Segmentation):
     def _extract_clr_mbh(self, k, negative_numbers):
         if hasattr(self, "data"):
             return self.data
-    
+
         sv2id = {sv.ID:i for i,sv in enumerate(self.supervoxels_list)}
         feature_len1 = len(self.supervoxels_list[0].getFeature())
         features= self._read_features()        
@@ -500,21 +500,21 @@ class MySegmentation(Segmentation):
                     data['neighbor{0}'.format(j)][idx][...] = data['neighbor{0}'.format(j)][idx][...]
                     #data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
                 data['negative'][idx][...] = np.append(features[sv2id[neg.ID]][...], negatives[neg].getFeature())#negatives[neg].getFeature()
-                                
+
 
             #print data.keys()
         self.data = data
         return data
 
     def _read_corso_features(self):
-        
+
         features = h5py.File(self.features_path,'r')
         return np.array(features['hist']).T
 
     def _extract_corso(self, k, negative_numbers):
         if hasattr(self, "data_corso"):
             return self.data_corso
-    
+
         sv2id = {sv.ID:i for i,sv in enumerate(self.supervoxels_list_corso)}
         features= self._read_corso_features()    
         print features
@@ -551,12 +551,12 @@ class MySegmentation(Segmentation):
                     data['neighbor{0}'.format(j)][idx][...] = data['neighbor{0}'.format(j)][idx][...]
                     #data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
                 data['negative'][idx][...] = features[sv2id[neg.ID]][...]
-                                
+
 
             #print data.keys()
         self.data_corso = data
         return data
-        
+
     def getFeatures(self, k, negative_numbers=1, feature_type=FeatureType.COLOR_HISTOGRAM):
         '''
         :param arg1: number of nieghbors (k)
@@ -565,7 +565,7 @@ class MySegmentation(Segmentation):
             the value of each key is a numpy.array of size n by f, where n is the number of supervoxels in the
             video and f is the size of the feature vector of each supervoxel
         :rtype: dict
-        
+
         '''
         assert k >= 2, 'K < 2: At least 2 neighbors is needed'
         if feature_type == FeatureType.COLOR_HISTOGRAM:
@@ -613,7 +613,7 @@ class MyMotionSegmentation(MySegmentation):
         else:
             super(Segmentation, self).__init__(segment.original_path, segmented_path, segment)
 
-    
+
 
 
 
@@ -629,13 +629,13 @@ class DB:
         if isinstance(data, dict):
             for name, dataset in data.iteritems():
                 self.h5pyDB.create_dataset(name, data=dataset, compression='gzip', compression_opts=1)
-    
+
         else:
             data = np.array(data)
             data = data.astype('float32')
             self.h5pyDB.create_dataset(name, data=data, compression='gzip', compression_opts=1)
-    
-    
+
+
     def close(self):
         self.h5pyDB.close()
 
@@ -676,7 +676,7 @@ def main():
         segmentors.append(segmentor)
         print "Total number of supervoxels: {0}".format(len(segmentor.supervoxels))
         print
-        
+
     #sv = segmentor.getSupervoxelAt(27, 127, 20)
     #print sv
     #supervoxels = segmentor.getKNearestSupervoxelsOf(sv, 6)
