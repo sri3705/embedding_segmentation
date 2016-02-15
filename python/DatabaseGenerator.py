@@ -10,11 +10,11 @@ from configs import getConfigs
 
 def createDatabase(db_name, db_settings, logger):
     if db_name == 'jhmdb':
-    	createJHMDB(db_settings, logger)
+        createJHMDB(db_settings, logger)
     elif db_name == 'ucf_sports':
-    	createUCFSports(db_settings, logger)
+        createUCFSports(db_settings, logger)
     elif db_name == 'vsb100':
-    	createVSB100(db_settings, logger)
+        createVSB100(db_settings, logger)
 
 def createJHMDB(db_settings, logger):
     frame_format = db_settings['frame_format']
@@ -34,45 +34,47 @@ def createJHMDB(db_settings, logger):
     feature_type = db_settings['feature_type']
     labelledlevelvideo_path = db_settings['labelledlevelvideo_path']
     optical_flow_path = db_settings['optical_flow_path']
+    fcn_path = db_settings['fcn_path']
     #TODO: maybe we should save them segarately
     #TODO: write a merge segment function?
     logger.log('*** Segment parsing ***')
     keys = ['target', 'negative'] + [ 'neighbor{0}'.format(i) for i in range(neighbor_num)]
     for action in action_name:
-    	for video in video_name[action]:
-    		logger.log('Processing action:`{action}`, video:`{video}`:'.format(action=action, video=video))
-    		try:
-    			annotator = JA(annotation_path.format(action_name=action, video_name=video))
-    		except:
-    			annotator = None
-    		segmentor = MySegmentation(orig_path.format(action_name=action, video_name=video, level=level)+frame_format,
-    						segmented_path.format(action_name=action, video_name=video, level=level)+frame_format,
-    						features_path.format(action_name=action, video_name=video, level=level),
-    						annotator,
+        for video in video_name[action]:
+            logger.log('Processing action:`{action}`, video:`{video}`:'.format(action=action, video=video))
+            try:
+            	annotator = JA(annotation_path.format(action_name=action, video_name=video))
+            except:
+            	annotator = None
+            segmentor = MySegmentation(orig_path.format(action_name=action, video_name=video, level=level)+frame_format,
+            				segmented_path.format(action_name=action, video_name=video, level=level)+frame_format,
+            				features_path.format(action_name=action, video_name=video, level=level),
+            				annotator,
                             None,
                             labelledlevelvideo_path.format(action_name=action, video_name=video, level=level),
                             optical_flow_path.format(action_name=action, video_name=video, level=level)+frame_format,
-                            negative_neighbors=n_neg)
-    		segmentor.setFeatureType(feature_type)
-    		for i in xrange(frame):
-    			logger.log('frame {0}'.format(i+1))
-    			segmentor.processNewFrame()
-    		segmentor.doneProcessing()
-    		logger.log("Total number of supervoxels: {0}".format(len(segmentor.supervoxels)))
-    		logger.log('*** Pickling ***')
-    		s = time.time()
-    		logger.log('Elapsed time: {0}'.format(time.time()-s))
-    		pickle.dump(segmentor, open(pickle_path.format(action_name=action, video_name=video, level=level), 'w'))
-    		s = time.time()
-    		logger.log('Piclking action:`{action}`, video:`{video}` ...'.format(action=action, video=video))
-    		logger.log('*** Collecting features / Creating databases ***')
-    		db_path = database_path.format(action_name=action, video_name=video, level=level)
-    		database = DB(db_path)
-    		features = segmentor.getFeatures(neighbor_num,feature_type=feature_type)
-    		for name, data in features.iteritems():
-    			database.save(data, name)
-    		database.close()
-    		logger.log("Segment {0} Done!\n".format(action))
+                            negative_neighbors=n_neg,
+                            fcn_path=fcn_path.format(action_name=action, video_name=video, level=level)+frame_format)
+            segmentor.setFeatureType(feature_type)
+            for i in xrange(frame):
+            	logger.log('frame {0}'.format(i+1))
+            	segmentor.processNewFrame()
+            segmentor.doneProcessing()
+            logger.log("Total number of supervoxels: {0}".format(len(segmentor.supervoxels)))
+            logger.log('*** Pickling ***')
+            s = time.time()
+            logger.log('Elapsed time: {0}'.format(time.time()-s))
+            pickle.dump(segmentor, open(pickle_path.format(action_name=action, video_name=video, level=level), 'w'))
+            s = time.time()
+            logger.log('Piclking action:`{action}`, video:`{video}` ...'.format(action=action, video=video))
+            logger.log('*** Collecting features / Creating databases ***')
+            db_path = database_path.format(action_name=action, video_name=video, level=level)
+            database = DB(db_path)
+            features = segmentor.getFeatures(neighbor_num,feature_type=feature_type)
+            for name, data in features.iteritems():
+            	database.save(data, name)
+            database.close()
+            logger.log("Segment {0} Done!\n".format(action))
     write_db_list(db_settings, logger)
     logger.log('done!')
 
@@ -96,32 +98,32 @@ def createJHMDB2(db_settings, logger):
     segmentors = {}
     logger.log('*** Segment parsing ***')
     for action in action_name:
-    	segmentors[action] = {}
-    	for video in video_name[action]:
-    		logger.log('Processing action:`{action}`, video:`{video}`:'.format(action=action, video=video))
-    		try:
-    			annotator = JA(annotation_path.format(action_name=action, video_name=video))
-    			segmentor = MySegmentation(orig_path.format(action_name=action, video_name=video, level=level)+frame_format,
-    							segmented_path.format(action_name=action, video_name=video, level=level)+frame_format,
-    							features_path.format(action_name=action, video_name=video, level=level),
-    							annotator)
-    			segmentor.setFeatureType(feature_type)
-    			for i in xrange(frame):
-    				logger.log('frame {0}'.format(i+1))
-    				segmentor.processNewFrame()
-    			segmentor.doneProcessing()
-    			logger.log("Total number of supervoxels: {0}".format(len(segmentor.supervoxels)))
-    			segmentors[action][video]= segmentor
-    		except Exception as e:
-    			logger.log('============================\n ERROR: video: "{0}" has problems...: {1}\n==========================='.format(video, str(e)))
+        segmentors[action] = {}
+        for video in video_name[action]:
+            logger.log('Processing action:`{action}`, video:`{video}`:'.format(action=action, video=video))
+            try:
+            	annotator = JA(annotation_path.format(action_name=action, video_name=video))
+            	segmentor = MySegmentation(orig_path.format(action_name=action, video_name=video, level=level)+frame_format,
+            					segmented_path.format(action_name=action, video_name=video, level=level)+frame_format,
+            					features_path.format(action_name=action, video_name=video, level=level),
+            					annotator)
+            	segmentor.setFeatureType(feature_type)
+            	for i in xrange(frame):
+            		logger.log('frame {0}'.format(i+1))
+            		segmentor.processNewFrame()
+            	segmentor.doneProcessing()
+            	logger.log("Total number of supervoxels: {0}".format(len(segmentor.supervoxels)))
+            	segmentors[action][video]= segmentor
+            except Exception as e:
+            	logger.log('============================\n ERROR: video: "{0}" has problems...: {1}\n==========================='.format(video, str(e)))
     logger.log('*** Pickling ***')
     s = time.time()
     for action in action_name:
-    	for video in video_name[action]:
-    		logger.log('Piclking action:`{action}`, video:`{video}` ...'.format(action=action, video=video))
-    		pickle.dump(segmentors[action][video], open(pickle_path.format(action_name=action, video_name=video, level=level), 'w'))
-    		logger.log('Elapsed time: {0}'.format(time.time()-s))
-    		s = time.time()
+        for video in video_name[action]:
+            logger.log('Piclking action:`{action}`, video:`{video}` ...'.format(action=action, video=video))
+            pickle.dump(segmentors[action][video], open(pickle_path.format(action_name=action, video_name=video, level=level), 'w'))
+            logger.log('Elapsed time: {0}'.format(time.time()-s))
+            s = time.time()
 
     logger.log('*** Collecting features / Creating databases ***')
     keys = ['target', 'negative'] + [ 'neighbor{0}'.format(i) for i in range(neighbor_num)]
@@ -130,14 +132,14 @@ def createJHMDB2(db_settings, logger):
     #logger.log('video 1 done!')
     #with open(database_list_path, 'w') as db_list:
     for action in action_name:
-    	for video in video_name[action]:
-    		db_path = database_path.format(action_name=action, video_name=video, level=level)
-    		database = DB(db_path)
-    		features = segmentors[action][video].getFeatures(neighbor_num,feature_type=feature_type)
-    		for name, data in features.iteritems():
-    			database.save(data, name)
-    		database.close()
-    #		db_list.write(db_path);
+        for video in video_name[action]:
+            db_path = database_path.format(action_name=action, video_name=video, level=level)
+            database = DB(db_path)
+            features = segmentors[action][video].getFeatures(neighbor_num,feature_type=feature_type)
+            for name, data in features.iteritems():
+            	database.save(data, name)
+            database.close()
+    #        db_list.write(db_path);
     write_db_list(db_settings, logger)
     logger.log('done!')
 
@@ -145,30 +147,30 @@ def createJHMDB2(db_settings, logger):
 
 def write_db_list(db_settings, logger):
     if db_settings['db'] == 'jhmdb':
-    	action_name = db_settings['action_name']
-    	video_name = db_settings['video_name']
-    	database_path = db_settings['database_path']
-    	database_list_path = db_settings['database_list_path']
-    	test_database_list_path = db_settings['test_database_list_path']
-    	level = db_settings['level']
-    	with open(database_list_path, 'w') as db_list:
-    		for action in action_name:
-    			for i,video in enumerate(video_name[action]):
-    				db_path = database_path.format(action_name=action, video_name=video, level=level)
-    				db_list.write(db_path+'\n');
-    				with open(test_database_list_path.format(name=i), 'w') as f:
-    					f.write(db_path)
+        action_name = db_settings['action_name']
+        video_name = db_settings['video_name']
+        database_path = db_settings['database_path']
+        database_list_path = db_settings['database_list_path']
+        test_database_list_path = db_settings['test_database_list_path']
+        level = db_settings['level']
+        with open(database_list_path, 'w') as db_list:
+            for action in action_name:
+            	for i,video in enumerate(video_name[action]):
+            		db_path = database_path.format(action_name=action, video_name=video, level=level)
+            		db_list.write(db_path+'\n');
+            		with open(test_database_list_path.format(name=i), 'w') as f:
+            			f.write(db_path)
     elif db_settings['db'] == 'vsb100':
-    	action_name = db_settings['action_name']
-    	database_path = db_settings['database_path']
-    	database_list_path = db_settings['database_list_path']
-    	test_database_list_path = db_settings['test_database_list_path']
-    	with open(database_list_path, 'w') as db_list:
-    		db_path = database_path.format(action_name=action_name)
-    		db_list.write(db_path+'\n');
-    	with open(test_database_list_path, 'w') as db_test_list:
-    		db_path = database_path.format(action_name=action_name+'_test')
-    		db_test_list.write(db_path+'\n');
+        action_name = db_settings['action_name']
+        database_path = db_settings['database_path']
+        database_list_path = db_settings['database_list_path']
+        test_database_list_path = db_settings['test_database_list_path']
+        with open(database_list_path, 'w') as db_list:
+            db_path = database_path.format(action_name=action_name)
+            db_list.write(db_path+'\n');
+        with open(test_database_list_path, 'w') as db_test_list:
+            db_path = database_path.format(action_name=action_name+'_test')
+            db_test_list.write(db_path+'\n');
 
 def createUCFSports(db_settings, log_path):
     pass

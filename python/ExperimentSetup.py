@@ -25,7 +25,6 @@ def setup_experiment(extract_features=False, visualization=False, comment=None):
       		f.write('{key}:{val}\n'.format(key=key, val='"{0}"'.format(val) if isinstance(val, str) else val))
 
    if extract_features:
-      #TODO: ^^^^ add neighbor_num to db_settigs shit!
       print 'extract features'
       createDatabase(config.db, config.db_settings, logger)
       #TODO create the database list
