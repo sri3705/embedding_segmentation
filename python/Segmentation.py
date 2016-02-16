@@ -7,6 +7,7 @@ from Annotation import *
 from enum import Enum
 import random
 import h5py
+from sklearn.preprocessing import MinMaxScaler
 
 class FeatureType(Enum):
     COLOR_HISTOGRAM = 1
@@ -15,10 +16,13 @@ class FeatureType(Enum):
     CORSO = 4
     CLR_HOF = 5
     HOF = 6
+    FCN = 7
     #DEEP = 3
 
 class Segmentation(object):
-    def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', annotator=None, segment=None, labelledlevelvideo_path='', optical_flow_path=''):
+
+
+    def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', annotator=None, segment=None, labelledlevelvideo_path='', optical_flow_path='',negative_neighbors=None, fcn_path=''):
         if segment is not None:
             print 'SEGMENT is not None'
             attrs = [a for a in dir(segment) if not a.startswith('__') and not callable(getattr(segment,a))]
@@ -30,11 +34,16 @@ class Segmentation(object):
             assert annotator is not None or not isinstance(annotator, Annotator), 'Annotator should be given'
         print 'Segment is NONE'
         print 'YOLO ***********************', original_path
+        if negative_neighbors is None:
+            self.negative_neighbors = 1
+        else:
+            self.negative_neighbors = negative_neighbors
         self.supervoxels = {} # ID -> Supervoxel
         self.frame_to_voxels = {} # frame (int) -> Supervoxel
         self.current_frame = 1
         self.original_path = original_path
         self.optical_flow_path = optical_flow_path
+        self.fcn_path = fcn_path
         self.segmented_path = segmented_path
         self.labelledlevelvideo_path = labelledlevelvideo_path
         self.__cKDTRee__ = None #cKDTree() for finding the neighbors. This attribute is set in donePrecessing method
@@ -49,27 +58,30 @@ class Segmentation(object):
     def __findLowestThresholdIndex(self,threshold):
         #if self.in_process:
         #    self.doneProcessing()
-        assert self.in_process == False, 'processing is not done yet'        
+        assert self.in_process == False, 'processing is not done yet'
         first = 0
         last = len(self.supervoxels_list)
         while first < last:
-            mid = first + (last-first+1)/2
-            if self.supervoxels_list[mid].getOverlap() > threshold:
-                first = mid                
-            else:
-                last = mid-1
+            first = 0
+            last = len(self.supervoxels_list)
+            while first < last:
+                mid = first + (last-first+1)/2
+                if self.supervoxels_list[mid].getOverlap() > threshold:
+                    first = mid
+                else:
+                    last = mid-1
         return first
 
     def getLabels(self,threshold):
         '''
-        :return: an array of length n (number of supervoxels). return[i] is False if 
+        :return: an array of length n (number of supervoxels). return[i] is False if
              supervoxels_list[i] is background, otherwise True
         :rtype: 1d-array -> []
         '''
         #if self.in_process:
         #    self.doneProcessing()
         assert self.in_process == False, 'processing is not done yet'
-        idx = self.__findLowestThresholdIndex(threshold)        
+        idx = self.__findLowestThresholdIndex(threshold)
         return [True if i <=idx else False for i in xrange(len(self.supervoxels_list))]
 
     def getOverlappingSupervoxels(self,threshold):
@@ -82,7 +94,7 @@ class Segmentation(object):
 
 
 
-    def addSupervoxels(self, original_img_path, segmented_img_path, frame_number, optical_flow_path=None):
+    def addSupervoxels(self, original_img_path, segmented_img_path, frame_number, optical_flow_path=None, fcn_path=None):
         self.in_process = True
         frame_number = frame_number-1
         orig_img = MyImage(original_img_path)
@@ -90,6 +102,8 @@ class Segmentation(object):
         voxel_colors = img.getcolors()
         if optical_flow_path is not None:
             optical_flow_img = MyImage(optical_flow_path)
+        if fcn_path is not None:
+            fcn_file = np.load(fcn_path)['hsv'].transpose(1, 2, 0).astype('float32')
         #print "Colors"
         #for c in voxel_colors:
         #    print c
@@ -109,9 +123,12 @@ class Segmentation(object):
             for y in range(img.size[1]):
                 color = img.getpixel(x, y)
                 try:
-                    self.supervoxels[color].addVoxel(x, y, frame_number, orig_img.getpixel(x, y), labels[y][x][frame_number])     
+                    self.supervoxels[color].addVoxel(x, y, frame_number, orig_img.getpixel(x, y), labels[y][x][frame_number])
                 except:
                     self.supervoxels[color].addVoxel(x, y, frame_number, orig_img.getpixel(x, y), 0)
+                if fcn_path is not None:
+                    fcn = fcn_file[y, x]
+                    self.supervoxels[color].addFCN(fcn)
                 if optical_flow_path is not None:
                     flow = optical_flow_img.getpixel(x,y)
                     self.supervoxels[color].addOpticalFlow(flow)
@@ -124,7 +141,8 @@ class Segmentation(object):
         orig_path = self.original_path.format(self.current_frame)
         seg_path = self.segmented_path.format(self.current_frame)
         optical_flow_path = self.optical_flow_path.format(self.current_frame)
-        self.addSupervoxels(orig_path, seg_path, self.current_frame, optical_flow_path)
+        fcn_path = self.fcn_path.format(self.current_frame).replace('.ppm', '.npz')
+        self.addSupervoxels(orig_path, seg_path, self.current_frame, optical_flow_path, fcn_path)
         self.current_frame += 1
 
     #TODO: Re-implement this one!
@@ -145,7 +163,7 @@ class Segmentation(object):
     #            img.save(to_path.format(open_frame))
     #            open_frame = f
     #            img = MyImage(from_path.format(open_frame))
-    #        img.putpixel(x,y, color)        
+    #        img.putpixel(x,y, color)
 
     def visualizeSegments(self, supervoxels_set, from_path='./orig/{0:05d}.ppm', to_path='./save/{0:05d}.ppm', colors={}):
         mkdirs(to_path)
@@ -167,7 +185,7 @@ class Segmentation(object):
                     for x,y in sv.pixels[f]:
                         img.putpixel(x,y, clr)
                 #        img.putpixel(x,y, sv.ID)
-            img.save(to_path.format(f))        
+            img.save(to_path.format(f))
 
     def doneProcessing(self):
         self.supervoxels_list = self.supervoxels.values()
@@ -197,20 +215,17 @@ class Segmentation(object):
         labelledlevelvideo = mapped
         savemat(self.labelledlevelvideo_path, {'labelledlevelvideo':labelledlevelvideo, 'total_number_of_supervoxels':len(self.colors_to_id)})
 
-
-
     def getSupervoxelAt(self, x, y, t):
         pixel = (x,y)
         for sv in self.frame_to_voxels[t]:
             if pixel in sv.pixels[t]:
                 return sv
-
     #For Pickling
     def __getstate__(self):
         if hasattr(self, "data"):
             del self.data
         state = {attr:getattr(self,attr) for attr in dir(self) if not attr.startswith('__') and not callable(getattr(self,attr))}
-        #state = {'supervoxels': self.supervoxels_list, 'supervoxels2': self.supervoxels_list}        
+        #state = {'supervoxels': self.supervoxels_list, 'supervoxels2': self.supervoxels_list}
         return state
 
     def __setstate__(self, dic):
@@ -218,14 +233,23 @@ class Segmentation(object):
             setattr(self, key, dic[key])
 
 class MySegmentation(Segmentation):
-    def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', features_path = './features.txt', annotator=None, segment=None, labelledlevelvideo_path='', optical_flow_path=''):
+    def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', features_path = './features.txt', annotator=None, segment=None, labelledlevelvideo_path='', optical_flow_path='', negative_neighbors=None,\
+            fcn_path=''):
+        print fcn_path
         if  segment is None:
             #print original_path, segmented_path, len(annotator.labels)
             print original_path, segmented_path, labelledlevelvideo_path
-            super(MySegmentation, self).__init__(original_path, segmented_path, annotator, None, labelledlevelvideo_path, optical_flow_path)
+            super(MySegmentation, self).__init__(original_path, segmented_path, annotator, None, labelledlevelvideo_path, optical_flow_path, negative_neighbors, fcn_path)
         else:
-            super(Segmentation, self).__init__(segment.original_path, segmented_path, segment, labelledlevelvideo_path, optical_flow_path)
+            super(Segmentation, self).__init__(segment.original_path, segmented_path, segment, labelledlevelvideo_path, optical_flow_path, negative_neighbors, fcn_path)
+        self.fcn_path = fcn_path
+
+        print 'FCN Path============================> ' + self.fcn_path
         self.features_path = features_path
+        if negative_neighbors is None:
+            self.negative_neighbors = 1
+        else:
+            self.negative_neighbors = negative_neighbors
 
     def getNearestSupervoxelsOf(self, supervoxel, threshold=30):
         pass
@@ -242,11 +266,11 @@ class MySegmentation(Segmentation):
         if not hasattr(self, 'cKDTree'):
             self.__cKDTree__ = cKDTree(np.array([sv.center() for sv in self.supervoxels_list]))
         nearestNeighbors = self.__cKDTree__.query(np.array(supervoxel.center()), k+1)[1] # Added one to the neighbors because the target itself is included
-
-        return set(self.supervoxels_list[i] for i in nearestNeighbors[1:])
+        return [self.supervoxels_list[i] for i in nearestNeighbors[1:]]
 
     def prepareData(self, k, number_of_data, feature_vec_size):
         feature_size = feature_vec_size * (1 + k + 1) #One for the target, k for neighbors, one for negative
+        #TODO: just use np.zeros(n,f)
         data = np.arange(number_of_data*feature_size)
         #data = data.reshape(number_of_data, 1, 1, feature_size)
         data = data.reshape(number_of_data, feature_size)
@@ -264,7 +288,7 @@ class MySegmentation(Segmentation):
         :return: an array of size n by k
         :rtype: numpy.array
         '''
-        #TODO: what the hell? just use np.zeros(n,f)
+        #TODO: just use np.zeros(n,f)
         data = np.arange(number_of_data*feature_vec_size)
         data = data.reshape(number_of_data, feature_vec_size)
         data = data.astype('float32')
@@ -277,9 +301,10 @@ class MySegmentation(Segmentation):
 #    def _extract_features_from_supervoxel_(self, sv):
 #        if self.feature_type == FeatureType.COLOR_HISTOGRAM:
 #            return sv.getFeature()
-#        elif self.feature_type == FeatureType.MBH:
 #        else:
-#            
+#            raise "Feature type is wrong!"
+
+
     def _extract_hof(self, k, negative_numbers):
         assert k >= 2, 'K < 2: At least 2 neighbors is needed'
         supervoxels = set(self.supervoxels_list)
@@ -289,9 +314,13 @@ class MySegmentation(Segmentation):
         for i in range(k):
             data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
         for i, sv in enumerate(self.supervoxels_list):
-            neighbors = self.getKNearestSupervoxelsOf(sv, k) 
+            neighbors = self.getKNearestSupervoxelsOf(sv, k)
             #print 'neighbors', len(neighbors)
-            supervoxels.difference_update(neighbors) #ALl other supervoxels except Target and its neighbors
+            supervoxels.difference_update(set(neighbors)) #ALl other supervoxels except Target and its neighbors
+            #TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
+            # Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
+            negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
+            #neighbors.remove(sv)
             #TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
             # Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
             negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
@@ -316,6 +345,97 @@ class MySegmentation(Segmentation):
         #print data.keys()
         return data
 
+    def _scale(self, y):
+        z = MinMaxScaler()
+        if type(y) is list:
+            y = np.array(y)
+            y = z.fit_transform(y)
+            return y.tolist()
+        else:
+            return z.fit_transform(y)
+
+    def _extract_fcn(self, k, negative_numbers):
+        assert k >= 2, 'K < 2: At least 2 neighbors is needed'
+        supervoxels = set(self.supervoxels_list)
+        feature_len = len(self.supervoxels_list[0].getFCN())
+        n = len(supervoxels) * negative_numbers
+        data = {'target':self.dummyData(n, feature_len), 'negative':self.dummyData(n, feature_len)}
+        for i in range(k):
+            data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
+        for i, sv in enumerate(self.supervoxels_list):
+            multiplier = max((negative_numbers/k + 3), 10)
+            neighbors_ = self.getKNearestSupervoxelsOf(sv, multiplier*k)
+            neighbors = set(neighbors_[:k])
+            neighbors_ = set(neighbors_[4*k:])
+            #print 'neighbors', len(neighbors)
+            #neighbors_.difference_update(neighbors) #All other supervoxels except Target and its neighbors
+            #TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
+            # Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
+            #negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
+            negatives = random.sample(neighbors_, negative_numbers) #Sample one supervoxel as negative
+
+            #neighbors.remove(sv)
+
+            #when everything is done we put back neighbors to the set
+            #supervoxels.update(neighbors)
+            #supervoxels.add(sv)
+            idx = i*negative_numbers
+            data['target'][idx][...] = sv.getFCN()
+            for j, nei in enumerate(neighbors):
+                data['neighbor{0}'.format(j)][idx][...] = nei.getFCN()
+            data['negative'][idx][...] = negatives[0].getFCN()
+            for neg in xrange(1, negative_numbers):
+                new_idx = idx+neg
+                data['target'][new_idx][...] = data['target'][idx][...]
+                for j, nei in enumerate(neighbors):
+                    data['neighbor{0}'.format(j)][new_idx][...] = data['neighbor{0}'.format(j)][idx][...]
+                data['negative'][new_idx][...] = negatives[neg].getFCN()
+
+        for _key in data.keys():
+            data[_key] = self._scale(data[_key])
+        print "[Segmentation::_extract_fcn] -- data['target'] shape:", data['target'].shape
+        return data
+
+    def _extract_fcn_hof(self, k, negative_numbers):
+        assert k >= 2, 'K < 2: At least 2 neighbors is needed'
+        supervoxels = set(self.supervoxels_list)
+        feature_len = len(self.supervoxels_list[0].getFCN() + self.supervoxels_list[0].getOpticalFlow())
+        n = len(supervoxels) * negative_numbers
+        data = {'target':self.dummyData(n, feature_len), 'negative':self.dummyData(n, feature_len)}
+        for i in range(k):
+            data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
+        for i, sv in enumerate(self.supervoxels_list):
+            multiplier = max((negative_numbers/k + 3), 10)
+            neighbors_ = self.getKNearestSupervoxelsOf(sv, multiplier*k)
+            neighbors = set(neighbors_[:k])
+            neighbors_ = set(neighbors_[4*k:])
+            #print 'neighbors', len(neighbors)
+            #neighbors_.difference_update(neighbors) #All other supervoxels except Target and its neighbors
+            #TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
+            # Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
+            #negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
+            negatives = random.sample(neighbors_, negative_numbers) #Sample one supervoxel as negative
+
+            #neighbors.remove(sv)
+
+            #when everything is done we put back neighbors to the set
+            #supervoxels.update(neighbors)
+            #supervoxels.add(sv)
+            idx = i*negative_numbers
+            data['target'][idx][...] = self._scale(sv.getFCN()) + sv.getOpticalFlow()
+            for j, nei in enumerate(neighbors):
+                data['neighbor{0}'.format(j)][idx][...] = self._scale(nei.getFCN()) + nei.getOpticalFlow()
+            data['negative'][idx][...] = self._scale(negatives[0].getFCN()) + negatives[0].getOpticalFlow()
+            for neg in xrange(1, negative_numbers):
+                new_idx = idx+neg
+                data['target'][new_idx][...] = data['target'][idx][...]
+                for j, nei in enumerate(neighbors):
+                    data['neighbor{0}'.format(j)][new_idx][...] = data['neighbor{0}'.format(j)][idx][...]
+                data['negative'][new_idx][...] = self._scale(negatives[neg].getFCN()) + negatives[neg].getOpticalFlow()
+
+        print "[Segmentation::_extract_fcn] -- data['target'] shape:", data['target'].shape
+        return data
+
     def _extract_clr_hof(self, k, negative_numbers):
         assert k >= 2, 'K < 2: At least 2 neighbors is needed'
         supervoxels = set(self.supervoxels_list)
@@ -325,9 +445,9 @@ class MySegmentation(Segmentation):
         for i in range(k):
             data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
         for i, sv in enumerate(self.supervoxels_list):
-            neighbors = self.getKNearestSupervoxelsOf(sv, k) 
+            neighbors = self.getKNearestSupervoxelsOf(sv, k)
             #print 'neighbors', len(neighbors)
-            supervoxels.difference_update(neighbors) #ALl other supervoxels except Target and its neighbors
+            supervoxels.difference_update(set(neighbors)) #ALl other supervoxels except Target and its neighbors
             #TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
             # Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
             negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
@@ -352,6 +472,45 @@ class MySegmentation(Segmentation):
         #print data.keys()
         return data
 
+    def _extract_color_histogram_new(self, k, negative_numbers):
+        feature_len = len(self.supervoxels_list[0].getFeature())
+        n = len(self.supervoxels_list) * negative_numbers
+        data = {'target':self.dummyData(n, feature_len), 'negative':self.dummyData(n, feature_len)}
+        for i in range(k):
+            data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
+        for i, sv in enumerate(self.supervoxels_list):
+            multiplier = max((negative_numbers/k + 3), 10)
+            neighbors_ = self.getKNearestSupervoxelsOf(sv, multiplier*k)
+            neighbors = set(neighbors_[:k])
+            neighbors_ = set(neighbors_[8*k:])
+            #print 'neighbors', len(neighbors)
+            neighbors_.difference_update(neighbors) #All other supervoxels except Target and its neighbors
+            #TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
+            # Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
+            #negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
+            negatives = random.sample(neighbors_, negative_numbers) #Sample one supervoxel as negative
+
+            #neighbors.remove(sv)
+
+            #when everything is done we put back neighbors to the set
+            #supervoxels.update(neighbors)
+            #supervoxels.add(sv)
+            idx = i*negative_numbers
+            data['target'][idx][...] = sv.getFeature()
+            for j, nei in enumerate(neighbors):
+                data['neighbor{0}'.format(j)][idx][...] = nei.getFeature()
+            data['negative'][idx][...] = negatives[0].getFeature()
+            for neg in xrange(1, negative_numbers):
+                new_idx = idx+neg
+                data['target'][new_idx][...] = data['target'][idx][...]
+                for j, nei in enumerate(neighbors):
+                    data['neighbor{0}'.format(j)][new_idx][...] = data['neighbor{0}'.format(j)][idx][...]
+                data['negative'][new_idx][...] = negatives[neg].getFeature()
+        print "[Segmentation::_extract_color_histogram_new] -- data['target'] shape:", data['target'].shape
+        return data
+
+
+
     def _extract_color_histogram(self, k, negative_numbers):
         assert k >= 2, 'K < 2: At least 2 neighbors is needed'
 
@@ -362,9 +521,9 @@ class MySegmentation(Segmentation):
         for i in range(k):
             data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
         for i, sv in enumerate(self.supervoxels_list):
-            neighbors = self.getKNearestSupervoxelsOf(sv, k) 
+            neighbors = self.getKNearestSupervoxelsOf(sv, k)
             #print 'neighbors', len(neighbors)
-            supervoxels.difference_update(neighbors) #ALl other supervoxels except Target and its neighbors
+            supervoxels.difference_update(set(neighbors)) #All other supervoxels except Target and its neighbors
             #TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
             # Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
             negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
@@ -377,18 +536,13 @@ class MySegmentation(Segmentation):
             data['target'][idx][...] = sv.getFeature()
             for j, nei in enumerate(neighbors):
                 data['neighbor{0}'.format(j)][idx][...] = nei.getFeature()
-                #data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
             data['negative'][idx][...] = negatives[0].getFeature()
             for neg in xrange(1, negative_numbers):
-                idx = i*negative_numbers+neg
-                data['target'][idx][...] = data['target'][idx][...]
+                new_idx = idx+neg
+                data['target'][new_idx][...] = data['target'][idx][...]
                 for j, nei in enumerate(neighbors):
-                    data['neighbor{0}'.format(j)][idx][...] = data['neighbor{0}'.format(j)][idx][...]
-                    #data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
-                data['negative'][idx][...] = negatives[neg].getFeature()
-
-
-        #print data.keys()
+                    data['neighbor{0}'.format(j)][new_idx][...] = data['neighbor{0}'.format(j)][idx][...]
+                data['negative'][new_idx][...] = negatives[neg].getFeature()
         return data
 
     def _read_features(self):
@@ -410,11 +564,11 @@ class MySegmentation(Segmentation):
                 line = line.split()
                 sv_id = (int(line[2]), int(line[1]), int(line[0]))
                 f = np.array(map(float, line[3:]))
-                assert f.shape[0]%feature_len == 0, 'feature len(%d) is not disiable by %d' % (f.shape[0], feature_len) 
+                assert f.shape[0]%feature_len == 0, 'feature len(%d) is not disiable by %d' % (f.shape[0], feature_len)
                 f = f.reshape((f.shape[0]/feature_len, feature_len))
                 f = np.mean(f, 0)
                 assert sv_id in sv2id, 'sv_id(%d,%d,%d) not in sv2id, i=%d' % (sv_id[2], sv_id[1], sv_id[0], i)
-                idx = sv2id[sv_id]            
+                idx = sv2id[sv_id]
                 features[idx][...] = f[...]
                 i+=1
         return features
@@ -424,7 +578,7 @@ class MySegmentation(Segmentation):
             return self.data
 
         sv2id = {sv.ID:i for i,sv in enumerate(self.supervoxels_list)}
-        features= self._read_features()        
+        features= self._read_features()
         feature_len = features.shape[1] #first three numbers are the id
         supervoxels = set(self.supervoxels_list)
         n = len(supervoxels) * negative_numbers
@@ -432,9 +586,9 @@ class MySegmentation(Segmentation):
         for i in range(k):
             data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
         for i, sv in enumerate(self.supervoxels_list):
-            neighbors = self.getKNearestSupervoxelsOf(sv, k) 
+            neighbors = self.getKNearestSupervoxelsOf(sv, k)
             #print 'neighbors', len(neighbors)
-            supervoxels.difference_update(neighbors) #ALl other supervoxels except Target and its neighbors
+            supervoxels.difference_update(set(neighbors)) #ALl other supervoxels except Target and its neighbors
             #TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
             # Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
             negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
@@ -457,7 +611,6 @@ class MySegmentation(Segmentation):
                     #data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
                 data['negative'][idx][...] = features[sv2id[neg.ID]][...]#negatives[neg].getFeature()
 
-
             #print data.keys()
         self.data = data
         return data
@@ -468,7 +621,7 @@ class MySegmentation(Segmentation):
 
         sv2id = {sv.ID:i for i,sv in enumerate(self.supervoxels_list)}
         feature_len1 = len(self.supervoxels_list[0].getFeature())
-        features= self._read_features()        
+        features= self._read_features()
         feature_len = features.shape[1]+feature_len1 #first three numbers are the id
         supervoxels = set(self.supervoxels_list)
         n = len(supervoxels) * negative_numbers
@@ -476,9 +629,9 @@ class MySegmentation(Segmentation):
         for i in range(k):
             data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
         for i, sv in enumerate(self.supervoxels_list):
-            neighbors = self.getKNearestSupervoxelsOf(sv, k) 
+            neighbors = self.getKNearestSupervoxelsOf(sv, k)
             #print 'neighbors', len(neighbors)
-            supervoxels.difference_update(neighbors) #ALl other supervoxels except Target and its neighbors
+            supervoxels.difference_update(set(neighbors)) #ALl other supervoxels except Target and its neighbors
             #TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
             # Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
             negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
@@ -501,13 +654,11 @@ class MySegmentation(Segmentation):
                     #data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
                 data['negative'][idx][...] = np.append(features[sv2id[neg.ID]][...], negatives[neg].getFeature())#negatives[neg].getFeature()
 
-
             #print data.keys()
         self.data = data
         return data
 
     def _read_corso_features(self):
-
         features = h5py.File(self.features_path,'r')
         return np.array(features['hist']).T
 
@@ -516,9 +667,9 @@ class MySegmentation(Segmentation):
             return self.data_corso
 
         sv2id = {sv.ID:i for i,sv in enumerate(self.supervoxels_list_corso)}
-        features= self._read_corso_features()    
+        features= self._read_corso_features()
         print features
-        assert features.shape[1] == 42, 'features size is wrong'    
+        assert features.shape[1] == 42, 'features size is wrong'
         feature_len = features.shape[1]
         supervoxels = set(self.supervoxels_list_corso)
         n = len(supervoxels) * negative_numbers
@@ -526,9 +677,9 @@ class MySegmentation(Segmentation):
         for i in range(k):
             data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
         for i, sv in enumerate(self.supervoxels_list_corso):
-            neighbors = self.getKNearestSupervoxelsOf(sv, k) 
+            neighbors = self.getKNearestSupervoxelsOf(sv, k)
             #print 'neighbors', len(neighbors)
-            supervoxels.difference_update(neighbors) #ALl other supervoxels except Target and its neighbors
+            supervoxels.difference_update(set(neighbors)) #ALl other supervoxels except Target and its neighbors
             #TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
             # Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
             negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
@@ -552,12 +703,11 @@ class MySegmentation(Segmentation):
                     #data[i][(j+1)*feature_len:(j+2)*feature_len] = nei.getFeature()
                 data['negative'][idx][...] = features[sv2id[neg.ID]][...]
 
-
             #print data.keys()
         self.data_corso = data
         return data
 
-    def getFeatures(self, k, negative_numbers=1, feature_type=FeatureType.COLOR_HISTOGRAM):
+    def getFeatures(self, k, feature_type=FeatureType.COLOR_HISTOGRAM):
         '''
         :param arg1: number of nieghbors (k)
         :type arg1: int
@@ -567,19 +717,24 @@ class MySegmentation(Segmentation):
         :rtype: dict
 
         '''
+        negative_neighbors = self.negative_neighbors
         assert k >= 2, 'K < 2: At least 2 neighbors is needed'
         if feature_type == FeatureType.COLOR_HISTOGRAM:
-            return self._extract_color_histogram(k, negative_numbers)
+            return self._extract_color_histogram_new(k, negative_neighbors)
         elif feature_type == FeatureType.MBH:
-            return self._extract_mbh(k, negative_numbers)
+            return self._extract_mbh(k, negative_neighbors)
         elif feature_type == FeatureType.CLR_MBH:
-            return self._extract_clr_mbh(k, negative_numbers)
+            return self._extract_clr_mbh(k, negative_neighbors)
         elif feature_type == FeatureType.CORSO:
-            return self._extract_corso(k, negative_numbers)
+            return self._extract_corso(k, negative_neighbors)
         elif feature_type == FeatureType.CLR_HOF:
-            return self._extract_clr_hof(k, negative_numbers)
+            return self._extract_clr_hof(k, negative_neighbors)
         elif feature_type == FeatureType.HOF:
-            return self._extract_hof(k, negative_numbers)
+            return self._extract_hof(k, negative_neighbors)
+        elif feature_type == FeatureType.FCN:
+            return self._extract_fcn(k, negative_neighbors)
+        elif set(feature_type) == set([FeatureType.FCN, FeatureType.HOF]):
+            return self._extract_fcn_hof(k, negative_neighbors)
         else:
             raise "Feature type is invalid"
 
@@ -613,10 +768,6 @@ class MyMotionSegmentation(MySegmentation):
         else:
             super(Segmentation, self).__init__(segment.original_path, segmented_path, segment)
 
-
-
-
-
 class DB:
     def __init__(self, path):
         self.path = path
@@ -634,8 +785,6 @@ class DB:
             data = np.array(data)
             data = data.astype('float32')
             self.h5pyDB.create_dataset(name, data=data, compression='gzip', compression_opts=1)
-
-
     def close(self):
         self.h5pyDB.close()
 
@@ -655,11 +804,11 @@ def main():
     frame_format = '{0:05d}.ppm'
     seg_path = '/cs/vml3/mkhodaba/cvpr16/dataset/b{0}/seg/{1:02d}/' #+ frame_format
     orig_path = '/cs/vml3/mkhodaba/cvpr16/dataset/b{0}/' #+ frame_format
-    first_output = '/cs/vml3/mkhodaba/cvpr16/dataset/b{0}/mymethod/{1:02d}/first/'#.format(level)    
+    first_output = '/cs/vml3/mkhodaba/cvpr16/dataset/b{0}/mymethod/{1:02d}/first/'#.format(level)
     output_path = '/cs/vml3/mkhodaba/cvpr16/dataset/b{0}/mymethod/{1:02d}/output/'#.format(level)
     dataset_path = '/cs/vml3/mkhodaba/cvpr16/code/embedding_segmentation/dataset/{name}'
     annotation_path = '/cs/vml3/mkhodaba/cvpr16/dataset/{name}_mask/mask.csv'
-    # Preparing data for 
+    # Preparing data for
     #segmentor = Segmentation(orig_path, seg_path+frame_format)
     level = 1
     segmentors = []
@@ -694,7 +843,7 @@ def main():
     #TODO check if features are correct
     ##for sv in segmentor.supervoxels_list:
         ##print sv.getFeature()
-        ##print "ID: {0}".format(sv.ID)        
+        ##print "ID: {0}".format(sv.ID)
 
         #R_hist = [0 for i in xrange(13)]
         #G_hist = [0 for i in xrange(13)]
@@ -703,7 +852,7 @@ def main():
         #G_hist[int(sv.ID[1]/20)] += 1
         #B_hist[int(sv.ID[2]/20)] += 1
         #print R_hist+G_hist+B_hist
-        #print sum(sv.getFeature())/3        
+        #print sum(sv.getFeature())/3
         #print "Num pixels: {0}".format(sv.number_of_pixels)
 
     pickle.dump(segmentors[0], open(dataset_path.format(name='segment_1.p'), 'w'))
@@ -717,7 +866,7 @@ def main():
 
     print 'Collecting features ...'
     neighbor_num = 6
-    keys = ['target', 'negative'] + [ 'neighbor{0}'.format(i) for i in range(neighbor_num)]    
+    keys = ['target', 'negative'] + [ 'neighbor{0}'.format(i) for i in range(neighbor_num)]
     features = segmentors[0].getFeatures(neighbor_num)
     print 'shape features', features['target'].shape
     feats = [features]
@@ -726,14 +875,14 @@ def main():
         tmp = segmentors[i].getFeatures(neighbor_num)
         feats.append(tmp)
         for key in keys:
-            features[key] = np.append(features[key], tmp[key], axis=0)    
+            features[key] = np.append(features[key], tmp[key], axis=0)
         print 'video {0} done!'.format(i+1)
     #print data
     #database_path = '
     print 'saving to database ...'
     for name, data in features.iteritems():
         database.save(data, name)
-    #database.save(dataset)    
+    #database.save(dataset)
     database.close()
 
 
@@ -750,7 +899,7 @@ def main():
     print 'saving to database ...'
     for name, data in features.iteritems():
         database.save(data, name)
-    #database.save(dataset)    
+    #database.save(dataset)
     database.close()
     '''
     print 'done!'
@@ -761,7 +910,7 @@ def main():
 
     #print 'pickle segments ...'
     #pickle.dump( segmentors, open(dataset_path.format(name='segmentors_lvl1.p'), 'w'))
-    #print 'pickle features ...'    
+    #print 'pickle features ...'
     #pickle.dump( feats, open(dataset_path.format(name='features_lvl1.p'), 'w'))
 
 

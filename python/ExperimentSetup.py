@@ -86,11 +86,8 @@ if __name__=='__main__':
     else:
         extract_features = False
     comment = ''
-    if "-m" in sys.argv:
-        i = sys.argv.index('-m')
-        comment = sys.argv[i+1]
+    # if "-m" in sys.argv:
+    i = sys.argv.index('-m')
+    comment = sys.argv[i+1]
     print "extract_features = ", extract_features
     setup_experiment(extract_features=extract_features, visualization=False, comment=comment)
-
-
-

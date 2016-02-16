@@ -19,19 +19,19 @@ def createDatabase(db_name, db_settings, logger):
 def createJHMDB(db_settings, logger):
     frame_format = db_settings['frame_format']
     action_name = db_settings['action_name']
-    video_name = db_settings['video_name'] 
+    video_name = db_settings['video_name']
     annotation_path = db_settings['annotation_path']
-    segmented_path = db_settings['segmented_path']    
+    segmented_path = db_settings['segmented_path']
     orig_path = db_settings['orig_path']
     level = db_settings['level']
     frame = db_settings['frame']
+    n_neg = db_settings['number_of_negatives']
     pickle_path = db_settings['pickle_path']
     neighbor_num = db_settings['number_of_neighbors'] #TODO add this to db_settings in experimentSetup    
     database_path = db_settings['database_path']
     database_list_path = db_settings['database_list_path']
     features_path = db_settings['features_path']
     feature_type = db_settings['feature_type']
-    number_of_negatives = db_settings['number_of_negatives']
     labelledlevelvideo_path = db_settings['voxellabelledlevelvideo_path']
     optical_flow_path = db_settings['optical_flow_path']
     #TODO: maybe we should save them segarately
@@ -40,7 +40,8 @@ def createJHMDB(db_settings, logger):
     keys = ['target', 'negative'] + [ 'neighbor{0}'.format(i) for i in range(neighbor_num)]    
     # from multiprocessing import Pool 
     # pool = Pool()
-    parallelProcess = lambda seg: seg[1].processNewFrame(seg[0])
+    # parallelProcess = lambda seg: seg[1].processNewFrame(seg[0])
+    fcn_path = db_settings['fcn_path']
     for action in action_name:
         for video in video_name[action]:
             logger.log('Processing action:`{action}`, video:`{video}`:'.format(action=action, video=video))
@@ -51,18 +52,21 @@ def createJHMDB(db_settings, logger):
             segmentor = MySegmentation(orig_path.format(action_name=action, video_name=video, level=level)+frame_format,
                             segmented_path.format(action_name=action, video_name=video, level=level)+frame_format,
                             features_path.format(action_name=action, video_name=video, level=level),
-                            annotator, 
+                            annotator,
                             None,
                             labelledlevelvideo_path.format(action_name=action, video_name=video, level=level),
-                            optical_flow_path.format(action_name=action, video_name=video, level=level)+frame_format)
-            segmentor.setFeatureType(feature_type)
+                            optical_flow_path.format(action_name=action, video_name=video, level=level)+frame_format,
+                            negative_neighbors=n_neg,
+                            fcn_path=fcn_path.format(action_name=action, video_name=video, level=level)+frame_format)
+            # segmentor.setFeatureType(feature_type)
             # segmentor_list = []
             # for i in xrange(frames_per_vidoe):
                 # segmentor_list.append((i, MySegmentation(orig_path.format(d)+frame_format, seg_path.format(d,level)+frame_format, annotator)))
             # parallelized_segmentor_list = pool.map(parallelProcess, segmentor_list) 
-            for i in xrange(frame):
-                logger.log('frame {0}'.format(i+1))
-                segmentor.processNewFrame()
+
+            # for i in xrange(frame):
+                # logger.log('frame {0}'.format(i+1))
+                # segmentor.processNewFrame()
             segmentor.doneProcessing()
             logger.log("Total number of supervoxels: {0}".format(len(segmentor.supervoxels)))
             logger.log('*** Pickling ***')
@@ -74,25 +78,25 @@ def createJHMDB(db_settings, logger):
             logger.log('*** Collecting features / Creating databases ***')
             db_path = database_path.format(action_name=action, video_name=video, level=level)
             database = DB(db_path)
-            features = segmentor.getFeatures(neighbor_num,negative_numbers=number_of_negatives,feature_type=feature_type)
+            features = segmentor.getFeatures(neighbor_num,feature_type=feature_type)
             for name, data in features.iteritems():
                 database.save(data, name)
             database.close()
-            logger.log("Segment {0} Done!\n".format(action)) 
+            logger.log("Segment {0} Done!\n".format(action))
     write_db_list(db_settings, logger)
     logger.log('done!')
 
 def createJHMDB2(db_settings, logger):
     frame_format = db_settings['frame_format']
     action_name = db_settings['action_name']
-    video_name = db_settings['video_name'] 
+    video_name = db_settings['video_name']
     annotation_path = db_settings['annotation_path']
-    segmented_path = db_settings['segmented_path']    
+    segmented_path = db_settings['segmented_path']
     orig_path = db_settings['orig_path']
     level = db_settings['level']
     frame = db_settings['frame']
     pickle_path = db_settings['pickle_path']
-    neighbor_num = db_settings['number_of_neighbors'] #TODO add this to db_settings in experimentSetup    
+    neighbor_num = db_settings['number_of_neighbors'] #TODO add this to db_settings in experimentSetup
     database_path = db_settings['database_path']
     database_list_path = db_settings['database_list_path']
     features_path = db_settings['features_path']
@@ -128,10 +132,10 @@ def createJHMDB2(db_settings, logger):
             pickle.dump(segmentors[action][video], open(pickle_path.format(action_name=action, video_name=video, level=level), 'w'))
             logger.log('Elapsed time: {0}'.format(time.time()-s))
             s = time.time()
-        
+
     logger.log('*** Collecting features / Creating databases ***')
-    keys = ['target', 'negative'] + [ 'neighbor{0}'.format(i) for i in range(neighbor_num)]    
-    feats = []    
+    keys = ['target', 'negative'] + [ 'neighbor{0}'.format(i) for i in range(neighbor_num)]
+    feats = []
 #    feats = [features]
     #logger.log('video 1 done!')
     #with open(database_list_path, 'w') as db_list:
@@ -152,7 +156,7 @@ def createJHMDB2(db_settings, logger):
 def write_db_list(db_settings, logger):
     if db_settings['db'] == 'jhmdb':
         action_name = db_settings['action_name']
-        video_name = db_settings['video_name'] 
+        video_name = db_settings['video_name']
         database_path = db_settings['database_path']
         database_list_path = db_settings['database_list_path']
         test_database_list_path = db_settings['test_database_list_path']
@@ -165,7 +169,7 @@ def write_db_list(db_settings, logger):
                     with open(test_database_list_path.format(name=i), 'w') as f:
                         f.write(db_path)
     elif db_settings['db'] == 'vsb100':
-        action_name = db_settings['action_name'] 
+        action_name = db_settings['action_name']
         database_path = db_settings['database_path']
         database_list_path = db_settings['database_list_path']
         test_database_list_path = db_settings['test_database_list_path']
@@ -175,11 +179,11 @@ def write_db_list(db_settings, logger):
         with open(test_database_list_path, 'w') as db_test_list:
             db_path = database_path.format(action_name=action_name+'_test')
             db_test_list.write(db_path+'\n');
-        
+
 def createUCFSports(db_settings, log_path):
     pass
 
-    
+
 def createVSB100(db_settings, logger):
     '''
     This method creates the database needed for caffe.
@@ -203,7 +207,7 @@ def createVSB100(db_settings, logger):
     from random import randint
     from sklearn.preprocessing import StandardScaler
     try:
-        features = loadmat(features_path)['features'] #number_of_frames x number_of_supervoxels_per_frame x feature_length 
+        features = loadmat(features_path)['features'] #number_of_frames x number_of_supervoxels_per_frame x feature_length
     except:
         import h5py
         features = h5py.File(features_path)
@@ -214,17 +218,18 @@ def createVSB100(db_settings, logger):
                         #framebelong -> total_number_of_super_pixels x 1
                         #labelsatframe -> total_number_of_super_pixels x 1
     kdtrees = []
-    labelledlevelvideo = video_info['labelledlevelvideo']    
+    labelledlevelvideo = video_info['labelledlevelvideo']
     numberofsuperpixelsperframe = video_info['numberofsuperpixelsperframe']
-    numberofsuperpixelsperframe = numberofsuperpixelsperframe[0]  
+    numberofsuperpixelsperframe = numberofsuperpixelsperframe[0]
+    print features.shape
     frames_num = len(features)
     superpixels_num = len(features[0]) #per frame
     feature_len = len(features[0][0])
     print features[0][0][1:50]
-    normalize_data = False 
-    if normalize_data: 
+    normalize_data = False
+    if normalize_data:
         features_normalized = np.zeros((np.sum(numberofsuperpixelsperframe), feature_len))
-        print features_normalized.shape 
+        print features_normalized.shape
         idx = 0
         for f in xrange(frames_num):
             for s in xrange(numberofsuperpixelsperframe[f]):
@@ -257,7 +262,7 @@ def createVSB100(db_settings, logger):
                 except:
                     print h, w, f
                     raise
-                centers[f][idx][0] += h        
+                centers[f][idx][0] += h
                 centers[f][idx][1] += w
                 pixels_count[f][idx] += 1
         for i in xrange(numberofsuperpixelsperframe[f]):
@@ -272,15 +277,21 @@ def createVSB100(db_settings, logger):
     target_superpixel_num = 0
     for f in xrange(neighbor_frames_num, frames_num-neighbor_frames_num):
         target_superpixel_num += numberofsuperpixelsperframe[f]
-    n = target_superpixel_num#len(framebelong)
+    n = target_superpixel_num
+    #len(framebelong)
     superpixel_skip_num = 0
+    n_neg = 10
     for f in xrange(neighbor_frames_num):
         superpixel_skip_num += numberofsuperpixelsperframe[f]
-    data = {'target':np.zeros((n, feature_len)), 'negative':np.zeros((n, feature_len))}
+    data = {'target':np.zeros((n*n_neg, feature_len)), 'negative':np.zeros((n*n_neg, feature_len))}
+    #data = {'target':np.zeros((n, feature_len)), 'negative':np.zeros((n, feature_len))}
+    #Tracer()()
+    total_number_of_neighbors = neighbors_num  * (2*neighbor_frames_num+1)
     total_number_of_neighbors = neighbors_num  * (2*neighbor_frames_num+1)
     for i in range(total_number_of_neighbors):
-        data['neighbor{0}'.format(i)] = np.zeros((n, feature_len))
-    superpixel_idx = -1 
+        data['neighbor{0}'.format(i)] = np.zeros((n*n_neg, feature_len))
+        #data['neighbor{0}'.format(i)] = np.zeros((n, feature_len))
+    superpixel_idx = -1
     logger.log('Creating the database of superpixels:features')
     for f in xrange(neighbor_frames_num, frames_num-neighbor_frames_num): #TODO: start from a frame that has at least neighbor_frames_num number of frames before it
         logger.log('Frame %d' % f)
@@ -289,7 +300,9 @@ def createVSB100(db_settings, logger):
             superpixel_idx += 1
             assert f == framebelong[superpixel_idx+superpixel_skip_num]-1, 'Something went wrong in mapping superpixel index to frames/label at frame (1)'
             assert i == labelsatframe[superpixel_idx+superpixel_skip_num]-1, 'Something went wrong in mapping superpixel index to frames/label at frame (2)'
-            data['target'][superpixel_idx][...] = features[f][i][...]
+            data['target'][superpixel_idx*n_neg:(superpixel_idx + 1)*n_neg][...] = features[f][i][...]
+            #data['target'][superpixel_idx][...] = features[f][i][...]
+
             center = centers[f][i]
             frame_start = max(0, f-neighbor_frames_num)
             frame_end = min(frames_num, f+neighbor_frames_num)
@@ -299,32 +312,29 @@ def createVSB100(db_settings, logger):
                 if f == target_frame:
                     nearest_neighbors = kdtrees[target_frame].query(center, neighbors_num+1)[1] # Added one to the neighbors because the target itself is included
                     nearest_neighbors = nearest_neighbors[1:]
-                    # if i == 0 and f == 5:
-                        # video_size = labelledlevelvideo.shape
-                        # img = Image.new('RGB', (video_size[1], video_size[0]))
-                        # for h in xrange(video_size[0]):
-                           # for w in xrange(video_size[1]):
-                               # if labelledlevelvideo[h][w][5]-1 in nearest_neighbors:
-                                   # img.putpixel((w,h), (255,20,20))
-                               # if 0==labelledlevelvideo[h][w][5]-1:
-                                   # img.putpixel((w,h), (20,255,20))
-                        # img.save('/cs/vml2/mkhodaba/cvpr16/test/pixels.jpg')
                 else:
                     nearest_neighbors = kdtrees[target_frame].query(center, neighbors_num)[1]
                 for idx in nearest_neighbors:
+                    #data['neighbor{0}'.format(neighbor_idx)][superpixel_idx*n_neg:(superpixel_idx + 1)*n_neg][...] = features[target_frame][idx][...]
                     data['neighbor{0}'.format(neighbor_idx)][superpixel_idx][...] = features[target_frame][idx][...]
                     neighbor_idx += 1
             assert neighbor_idx == total_number_of_neighbors, "Number of neighbors doesn't match ( %d != %d )" % (neighbor_idx, total_number_of_neighbors)
-            #TODO: print "Random frame ... (Warning: if it's taknig too long stop it! \n Apparantly, the number of neighboring frames are relatively large \n with respect to the number of video frames)"            
+            #TODO: print "Random frame ... (Warning: if it's taknig too long stop it! \n Apparantly, the number of neighboring frames are relatively large \n with respect to the number of video frames)"
             # frame_random = randint(0, frames_num-1)
             # while frame_end-frame_start < 0.5*frames_num and frame_start <= frame_random <= frame_end:
                 # frame_random = randint(0, frames_num-1)
             # idx_random = randint(0, numberofsuperpixelsperframe[ frame_random]-1)
             # data['negative'][superpixel_idx][...] = features[frame_random][idx_random][...]
-            # nearest_neighbors = kdtrees[(f+10)%frames_num].query(center, 4*neighbors_num)[1]
-            nearest_neighbors = kdtrees[f].query(center, 5*neighbors_num)[1]
-            idx_random = nearest_neighbors[-1] #It's the nearest of farthest superpixels to this one
-            data['negative'][superpixel_idx][...] = features[f][idx_random][...]
+            nearest_neighbors = kdtrees[f].query(center, 5*neighbors_num+n_neg)[1]
+            #nearest_neighbors = kdtrees[f].query(center, 5*neighbors_num)[1]
+            #It's the nearest of farthest superpixels to this one
+            idx_random = nearest_neighbors[-1]
+            if i == 10:
+                print 'f, i, superpixel_idx, idx_random', f, i, superpixel_idx, idx_random
+            #data['negative'][superpixel_idx][...] = features[f][idx_random][...]
+            for j in xrange(n_neg):
+                idx_random = nearest_neighbors[-j]
+                data['negative'][superpixel_idx*n_neg + j][...] = features[f][idx_random][...]
 
     assert superpixel_idx+1 == target_superpixel_num, "Total number of superpixels doesn't match (%d != %d)" % (superpixel_idx, target_superpixel_num)
     db_path = database_path.format(action_name=action)
@@ -335,50 +345,42 @@ def createVSB100(db_settings, logger):
     database.close()
     #Creating the database for extracting the final representations. It just needs to have the targets nothing else.
 
-    n = len(framebelong)
-    print 'n', n
-    data = {'target':np.zeros((n, feature_len)), 'negative':np.zeros((n, feature_len))}
-    total_number_of_neighbors = neighbors_num  * (2*neighbor_frames_num+1)
-    for i in range(total_number_of_neighbors):
-        data['neighbor{0}'.format(i)] = np.zeros((n, feature_len))
-    superpixel_idx = 0
-    for f in xrange(1,frames_num-1):
-        for i in xrange(numberofsuperpixelsperframe[f]):
-            try:
-                data['target'][superpixel_idx][...] = features[f][i][...]
-            except:
-                print superpixel_idx, f, i
-                raise
-            superpixel_idx +=1
-    database_path = db_settings['database_path']
-    db_path = database_path.format(action_name=(action+'_test'))
-    print 'test db path', db_path
-    database = DB(db_path)
-    for name, datum in data.iteritems():
-        database.save(datum, name)
-    database.close()
-
+#    n = len(framebelong)
+#    print 'n', n
+#    data = {'target':np.zeros((n*n_neg, feature_len)), 'negative':np.zeros((n*n_neg, feature_len))}
+#    total_number_of_neighbors = neighbors_num  * (2*neighbor_frames_num+1)
+#    for i in range(total_number_of_neighbors):
+#        data['neighbor{0}'.format(i)] = np.zeros((n*n_neg, feature_len))
+#    superpixel_idx = 0
+#    for f in xrange(1,frames_num-1):
+#        for i in xrange(numberofsuperpixelsperframe[f]):
+#            try:
+#                data['target'][superpixel_idx*n_neg:(superpixel_idx + 1)*n_neg][...] = features[f][i][...]
+#            except:
+#                print superpixel_idx, f, i
+#                raise
+#            superpixel_idx +=1
+#    database_path = db_settings['database_path']
+#    db_path = database_path.format(action_name=(action+'_test'))
+#    print 'test db path', db_path
+#    database = DB(db_path)
+#    for name, datum in data.iteritems():
+#        database.save(datum, name)
+#    database.close()
+#
     write_db_list(db_settings, logger)
 
     logger.log('Creating database Done!')
-    #TODO: 
+    #TODO:
     # 1-Read the features, vid-labels mat files
     # 2-map each superpixel to an ID
     # 3-create a kdtree for superpixels of each frame
-    # 4-loop over all superpixels of all frames. 
+    # 4-loop over all superpixels of all frames.
     #     4.1-for each superpixel loop over current, previous, next frames and find neighbors
     #    4.2- concatenate features then push it in the database
     # done
 
-
-
-
-
-
-
-
-
-    #This method is deprecated    
+    #This method is deprecated
 def create_dbs():
     configs = getConfigs()
 
@@ -389,7 +391,8 @@ def create_dbs():
     output_path = configs.output_path
     dataset_path = configs.dataset_path
     annotation_path = configs.annotation_path
-    action
+    n_neg = configs.number_of_negatives
+    print 'n_neg \t= \t' + str(n_neg)
     feature_name = '256bin'
     level = 2
     segmentors = []
@@ -400,7 +403,7 @@ def create_dbs():
             d = dd+1
             print 'b{0}'.format(d)
             annotator = JA(annotation_path.format(name='b'+str(d)))
-            segmentor = MySegmentation(orig_path.format(d)+frame_format, seg_path.format(d,level)+frame_format, annotator)
+            segmentor = MySegmentation(orig_path.format(d)+frame_format, seg_path.format(d,level)+frame_format, annotator, negative_neighbors=n_neg)
             for i in range(1, frames_per_video):
                 print "processing frame {i}".format(i=i)
                 segmentor.processNewFrame()
@@ -424,16 +427,16 @@ def create_dbs():
     else:
         for i in range(vid_num):
             segmentors.append(pickle.load(open(dataset_path.format(name='segment_{0}.p'.format(i+1)), 'r')))
-        
+
 
     database = DB(dataset_path.format(name='videos{v}_feature{f}_lvl{l}.h5'.format(\
                             v='_'.join(map(str,range(1,vid_num))),
                             f=feature_name,
                             l=level)))
-        
+
     print 'Collecting features ...'
     neighbor_num = 6
-    keys = ['target', 'negative'] + [ 'neighbor{0}'.format(i) for i in range(neighbor_num)]    
+    keys = ['target', 'negative'] + [ 'neighbor{0}'.format(i) for i in range(neighbor_num)]
     features = segmentors[0].getFeatures(neighbor_num)
     print 'shape features', features['target'].shape
     feats = [features]
@@ -442,14 +445,14 @@ def create_dbs():
         tmp = segmentors[i].getFeatures(neighbor_num)
         #feats.append(tmp)
         for key in keys:
-            features[key] = np.append(features[key], tmp[key], axis=0)    
+            features[key] = np.append(features[key], tmp[key], axis=0)
         print 'video {0} done!'.format(i+1)
     #print data
     #database_path = '
     print 'saving to database ...'
     for name, data in features.iteritems():
         database.save(data, name)
-    #database.save(dataset)    
+    #database.save(dataset)
     database.close()
 
 
@@ -461,7 +464,7 @@ def create_dbs():
 
     #print 'pickle segments ...'
     #pickle.dump( segmentors, open(dataset_path.format(name='segmentors_lvl1.p'), 'w'))
-    #print 'pickle features ...'    
+    #print 'pickle features ...'
     #pickle.dump( feats, open(dataset_path.format(name='features_lvl1.p'), 'w'))
 
 if __name__ == '__main__':

@@ -22,7 +22,7 @@ def meanAP(retrieves, labels):
 def retrieveKNearest(supervoxel_index_list, dist_matrix, k):
 	'''
 	This method finds the k nearest supervoxels to each of the given suporvoxels in supervoxel_list.
-	For each supervoxel output is a list of tuples of (dist, i) where dist is the distance between 
+	For each supervoxel output is a list of tuples of (dist, i) where dist is the distance between
 	those supervoxles and i is the index of i-th nearest supervoxel.
 
 	:param arg1: list of indexes of supervoxels for which the k nearest neighbors are being computed
@@ -145,11 +145,11 @@ if __name__ == '__main__':
 	it = -1
 	prev_loss = 100000000
 	diff_loss = 100
-	min_iter = 5002
+	max_iter = conf.solver['max_iter'] 
 	print "--------------------------------------"
-	print "Configs for experiment:",conf.experiment_number 
+	print "Configs for experiment:",conf.experiment_number
 	print "--------------------------------------"
-	while (it < niter and abs(diff_loss) >= termination_threshold) or it < min_iter:
+	while it < max_iter:
 		it += 1
 		solver.step(1)  # SGD by Caffe
 		train_loss= np.append(train_loss, solver.net.blobs['loss'].data)
@@ -158,7 +158,7 @@ if __name__ == '__main__':
 			current_loss = np.mean(train_loss[-train_interval:])
 			prev_loss, diff_loss = current_loss, prev_loss-current_loss
 			logger.log( 'Average Train Loss [last {0}]: {1} -- Train Loss Std:{1}'.format(train_interval,current_loss, np.std(train_loss[-train_interval:])))
-			logger.log('Minimum Train Loss [last {0}]:{1}'.format(train_interval,np.amin(train_loss[-train_interval:])))	
+			logger.log('Minimum Train Loss [last {0}]:{1}'.format(train_interval,np.amin(train_loss[-train_interval:])))
 			logger.log('Improvement [last {0}]: {1}'.format(train_interval,diff_loss))
 
 		#TODO TESTING!!!!
@@ -209,7 +209,7 @@ if __name__ == '__main__':
 			logger.log("============================= DONE ============================")
 	logger.close()
 	print "Experiment done!"
-    	
+
 	#np.savetxt(root+'embedding.txt', solver.net.params['inner_product_target'][0].data)
 	#with open(root+'embedding.txt', 'w') as f:
 	#	f.write(str(solver.net.params['inner_product_target'][0].data))
@@ -222,7 +222,7 @@ if __name__ == '__main__':
 	    # (start the forward pass at conv1 to avoid loading new data)
 	    #solver.test_nets[0].forward(start='conv1')
 	    #output[it] = solver.test_nets[0].blobs['ip2'].data[:8]
-	    
+
 	    # run a full test every so often
 	    # (Caffe can also do this for us and write to a log, but we show here
 	    #  how to do it directly in Python, where more complicated things are easier.)

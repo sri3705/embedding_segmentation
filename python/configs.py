@@ -28,7 +28,7 @@ class Config:
         self.model = {
             'batch_size':        32,
             'number_of_neighbors':    8, #number of neighbors around the target superpixel
-            'number_of_negatives':  1,
+            'number_of_negatives':  20,
             'inner_product_output':    128, #2*(3*256+192),
             'weight_lr_mult':    1,
             'weight_decay_mult':    1,
@@ -37,7 +37,7 @@ class Config:
             'model_prototxt_path':    self.experiments_path+'/model.prototxt',
             'test_prototxt_path':    self.experiments_path+'/test.prototxt',
             'database_list_path':    self.experiments_path+'/database_list.txt',
-            'feature_type':        FeatureType.HOF,#FeatureType.CORSO,#FeatureType.COLOR_HISTOGRAM#    
+            'feature_type':        FeatureType.FCN,#FeatureType.CORSO,#FeatureType.COLOR_HISTOGRAM#    
         }
 
         self.solver = {
@@ -78,7 +78,7 @@ class Config:
         jhmdb = {
             'db':                'jhmdb',
             'action_name':            ['vw_commercial'], #['pour'],
-            'level':            10,
+            'level':            3,
             'video_name':            {},
             'frame':            21,
             'frame_format':            self.frame_format,
@@ -103,6 +103,7 @@ class Config:
             'pickle_path':            '/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/{level:02d}.p',
             'pixellabelledlevelvideo_path':            '/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/pixellabelledlevelvideo_{level:02d}.mat',
             'voxellabelledlevelvideo_path':            '/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/voxellabelledlevelvideo_{level:02d}.mat',
+            'fcn_path':             '/cs/vml2/smuralid/projects/eccv16/python/preprocessing/fcn/Test/{action_name}/', 
             'test_database_list_path':    self.experiments_path+'/database_list_{name}.txt',
             'database_list_path':        self.model['database_list_path'],
             'feature_type':            self.model['feature_type'],

@@ -31,7 +31,10 @@ def getRepresentations(conf, net, superpixels_num):
     assert data.shape[0] == 1, 'batch size != ? ... this assert is not important'
     feature_len = data.shape[1]
     reps = np.zeros((superpixels_num, feature_len))
-    negative_numbers = conf.model['number_of_negatives'] 
+    try:
+        negative_numbers = conf.model['number_of_negatives']
+    except:
+        negative_numbers = 1
     for i in xrange(superpixels_num*negative_numbers):
         if i%1000==1:
             print i
@@ -49,8 +52,8 @@ def computeDistanceMatrix(representations):
 def getLastAddedFile(path):
     search_dir = path
     # remove anything from the list that is not a file (directories, symlinks)
-    # thanks to J.F. Sebastion for pointing out that the requirement was a list 
-    # of files (presumably not including directories)  
+    # thanks to J.F. Sebastion for pointing out that the requirement was a list
+    # of files (presumably not including directories)
     files = filter(os.path.isfile, glob.glob(search_dir + "*"))
     files.sort(key=lambda x: os.path.getmtime(x))
     return files[-2]
@@ -64,7 +67,7 @@ def computeSimilarities(config_id):
     test_model_path = conf.model['test_prototxt_path']
     test_model =  caffe.Net(test_model_path, caffemodel_path, caffe.TEST)
     print "last snapshot is:", caffemodel_path
-    print 'Experiment number:', conf.experiment_number 
+    print 'Experiment number:', conf.experiment_number
     print 'creating model'
     if conf.db == 'vsb100':
         print 'vsb100'
