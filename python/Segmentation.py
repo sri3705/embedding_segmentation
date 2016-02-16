@@ -63,8 +63,8 @@ class Segmentation(object):
         first = 0
         last = len(self.supervoxels_list)
         while first < last:
-        first = 0
-        last = len(self.supervoxels_list)
+            first = 0
+            last = len(self.supervoxels_list)
         while first < last:
             mid = first + (last-first+1)/2
             if self.supervoxels_list[mid].getOverlap() > threshold:
@@ -244,7 +244,6 @@ class MySegmentation(Segmentation):
         else:
             super(Segmentation, self).__init__(segment.original_path, segmented_path, segment, labelledlevelvideo_path, optical_flow_path, negative_neighbors, fcn_path)
         self.fcn_path = fcn_path
-
         print 'FCN Path============================> ' + self.fcn_path
         self.features_path = features_path
         if negative_neighbors is None:
@@ -362,35 +361,36 @@ class MySegmentation(Segmentation):
         n = len(supervoxels) * negative_numbers
         data = {'target':self.dummyData(n, feature_len), 'negative':self.dummyData(n, feature_len)}
         for i in range(k):
-        	data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
+            data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
         for i, sv in enumerate(self.supervoxels_list):
             multiplier = max((negative_numbers/k + 3), 10)
-            neighbors_ = self.getKNearestSupervoxelsOf(sv, multiplier*k)
+            neighbors_ = self.getKNearestSupervoxelsOf(sv, multiplier*negative_numbers)
             neighbors = set(neighbors_[:k])
             neighbors_ = set(neighbors_[4*k:])
-        	#print 'neighbors', len(neighbors)
+            #neighbors_ = set(neighbors_[11*negative_numbers:])
+            #print 'neighbors', len(neighbors)
             #neighbors_.difference_update(neighbors) #All other supervoxels except Target and its neighbors
-        	#TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
-        	# Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
+            #TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
+            # Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
             #negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
             negatives = random.sample(neighbors_, negative_numbers) #Sample one supervoxel as negative
 
             #neighbors.remove(sv)
 
-        	#when everything is done we put back neighbors to the set
+            #when everything is done we put back neighbors to the set
             #supervoxels.update(neighbors)
             #supervoxels.add(sv)
             idx = i*negative_numbers
             data['target'][idx][...] = sv.getFCN()
             for j, nei in enumerate(neighbors):
-        	    data['neighbor{0}'.format(j)][idx][...] = nei.getFCN()
+                data['neighbor{0}'.format(j)][idx][...] = nei.getFCN()
             data['negative'][idx][...] = negatives[0].getFCN()
             for neg in xrange(1, negative_numbers):
-        	    new_idx = idx+neg
-        	    data['target'][new_idx][...] = data['target'][idx][...]
-        	    for j, nei in enumerate(neighbors):
-        		    data['neighbor{0}'.format(j)][new_idx][...] = data['neighbor{0}'.format(j)][idx][...]
-        	    data['negative'][new_idx][...] = negatives[neg].getFCN()
+                new_idx = idx+neg
+                data['target'][new_idx][...] = data['target'][idx][...]
+                for j, nei in enumerate(neighbors):
+                    data['neighbor{0}'.format(j)][new_idx][...] = data['neighbor{0}'.format(j)][idx][...]
+                data['negative'][new_idx][...] = negatives[neg].getFCN()
 
         for _key in data.keys():
             data[_key] = self._scale(data[_key])
@@ -404,28 +404,28 @@ class MySegmentation(Segmentation):
         n = len(supervoxels) * negative_numbers
         data = {'target':self.dummyData(n, feature_len), 'negative':self.dummyData(n, feature_len)}
         for i in range(k):
-        	data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
+            data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
         for i, sv in enumerate(self.supervoxels_list):
             multiplier = max((negative_numbers/k + 3), 10)
             neighbors_ = self.getKNearestSupervoxelsOf(sv, multiplier*k)
             neighbors = set(neighbors_[:k])
             neighbors_ = set(neighbors_[4*k:])
-        	#print 'neighbors', len(neighbors)
+            #print 'neighbors', len(neighbors)
             #neighbors_.difference_update(neighbors) #All other supervoxels except Target and its neighbors
-        	#TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
-        	# Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
+            #TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
+            # Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
             #negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
             negatives = random.sample(neighbors_, negative_numbers) #Sample one supervoxel as negative
 
             #neighbors.remove(sv)
 
-        	#when everything is done we put back neighbors to the set
+            #when everything is done we put back neighbors to the set
             #supervoxels.update(neighbors)
             #supervoxels.add(sv)
             idx = i*negative_numbers
             data['target'][idx][...] = self._scale(sv.getFCN()) + sv.getOpticalFlow()
             for j, nei in enumerate(neighbors):
-        	    data['neighbor{0}'.format(j)][idx][...] = self._scale(nei.getFCN()) + nei.getOpticalFlow()
+                data['neighbor{0}'.format(j)][idx][...] = self._scale(nei.getFCN()) + nei.getOpticalFlow()
             data['negative'][idx][...] = self._scale(negatives[0].getFCN()) + negatives[0].getOpticalFlow()
             for neg in xrange(1, negative_numbers):
                 new_idx = idx+neg

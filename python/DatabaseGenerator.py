@@ -43,13 +43,13 @@ def createJHMDB(db_settings, logger):
         for video in video_name[action]:
             logger.log('Processing action:`{action}`, video:`{video}`:'.format(action=action, video=video))
             try:
-            	annotator = JA(annotation_path.format(action_name=action, video_name=video))
+                annotator = JA(annotation_path.format(action_name=action, video_name=video))
             except:
-            	annotator = None
+                annotator = None
             segmentor = MySegmentation(orig_path.format(action_name=action, video_name=video, level=level)+frame_format,
-            				segmented_path.format(action_name=action, video_name=video, level=level)+frame_format,
-            				features_path.format(action_name=action, video_name=video, level=level),
-            				annotator,
+                            segmented_path.format(action_name=action, video_name=video, level=level)+frame_format,
+                            features_path.format(action_name=action, video_name=video, level=level),
+                            annotator,
                             None,
                             labelledlevelvideo_path.format(action_name=action, video_name=video, level=level),
                             optical_flow_path.format(action_name=action, video_name=video, level=level)+frame_format,
@@ -57,8 +57,8 @@ def createJHMDB(db_settings, logger):
                             fcn_path=fcn_path.format(action_name=action, video_name=video, level=level)+frame_format)
             segmentor.setFeatureType(feature_type)
             for i in xrange(frame):
-            	logger.log('frame {0}'.format(i+1))
-            	segmentor.processNewFrame()
+                logger.log('frame {0}'.format(i+1))
+                segmentor.processNewFrame()
             segmentor.doneProcessing()
             logger.log("Total number of supervoxels: {0}".format(len(segmentor.supervoxels)))
             logger.log('*** Pickling ***')
@@ -72,7 +72,7 @@ def createJHMDB(db_settings, logger):
             database = DB(db_path)
             features = segmentor.getFeatures(neighbor_num,feature_type=feature_type)
             for name, data in features.iteritems():
-            	database.save(data, name)
+                database.save(data, name)
             database.close()
             logger.log("Segment {0} Done!\n".format(action))
     write_db_list(db_settings, logger)
@@ -102,20 +102,20 @@ def createJHMDB2(db_settings, logger):
         for video in video_name[action]:
             logger.log('Processing action:`{action}`, video:`{video}`:'.format(action=action, video=video))
             try:
-            	annotator = JA(annotation_path.format(action_name=action, video_name=video))
-            	segmentor = MySegmentation(orig_path.format(action_name=action, video_name=video, level=level)+frame_format,
-            					segmented_path.format(action_name=action, video_name=video, level=level)+frame_format,
-            					features_path.format(action_name=action, video_name=video, level=level),
-            					annotator)
-            	segmentor.setFeatureType(feature_type)
-            	for i in xrange(frame):
-            		logger.log('frame {0}'.format(i+1))
-            		segmentor.processNewFrame()
-            	segmentor.doneProcessing()
-            	logger.log("Total number of supervoxels: {0}".format(len(segmentor.supervoxels)))
-            	segmentors[action][video]= segmentor
+                annotator = JA(annotation_path.format(action_name=action, video_name=video))
+                segmentor = MySegmentation(orig_path.format(action_name=action, video_name=video, level=level)+frame_format,
+                                segmented_path.format(action_name=action, video_name=video, level=level)+frame_format,
+                                features_path.format(action_name=action, video_name=video, level=level),
+                                annotator)
+                segmentor.setFeatureType(feature_type)
+                for i in xrange(frame):
+                    logger.log('frame {0}'.format(i+1))
+                    segmentor.processNewFrame()
+                segmentor.doneProcessing()
+                logger.log("Total number of supervoxels: {0}".format(len(segmentor.supervoxels)))
+                segmentors[action][video]= segmentor
             except Exception as e:
-            	logger.log('============================\n ERROR: video: "{0}" has problems...: {1}\n==========================='.format(video, str(e)))
+                logger.log('============================\n ERROR: video: "{0}" has problems...: {1}\n==========================='.format(video, str(e)))
     logger.log('*** Pickling ***')
     s = time.time()
     for action in action_name:
@@ -137,7 +137,7 @@ def createJHMDB2(db_settings, logger):
             database = DB(db_path)
             features = segmentors[action][video].getFeatures(neighbor_num,feature_type=feature_type)
             for name, data in features.iteritems():
-            	database.save(data, name)
+                database.save(data, name)
             database.close()
     #        db_list.write(db_path);
     write_db_list(db_settings, logger)
@@ -155,11 +155,11 @@ def write_db_list(db_settings, logger):
         level = db_settings['level']
         with open(database_list_path, 'w') as db_list:
             for action in action_name:
-            	for i,video in enumerate(video_name[action]):
-            		db_path = database_path.format(action_name=action, video_name=video, level=level)
-            		db_list.write(db_path+'\n');
-            		with open(test_database_list_path.format(name=i), 'w') as f:
-            			f.write(db_path)
+                for i,video in enumerate(video_name[action]):
+                    db_path = database_path.format(action_name=action, video_name=video, level=level)
+                    db_list.write(db_path+'\n');
+                    with open(test_database_list_path.format(name=i), 'w') as f:
+                        f.write(db_path)
     elif db_settings['db'] == 'vsb100':
         action_name = db_settings['action_name']
         database_path = db_settings['database_path']
