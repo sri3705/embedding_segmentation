@@ -32,7 +32,7 @@ def createJHMDB(db_settings, logger):
     database_list_path = db_settings['database_list_path']
     features_path = db_settings['features_path']
     feature_type = db_settings['feature_type']
-    labelledlevelvideo_path = db_settings['labelledlevelvideo_path']
+    labelledlevelvideo_path = db_settings['voxellabelledlevelvideo_path']
     optical_flow_path = db_settings['optical_flow_path']
     fcn_path = db_settings['fcn_path']
     #TODO: maybe we should save them segarately
