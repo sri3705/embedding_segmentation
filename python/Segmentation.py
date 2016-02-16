@@ -363,7 +363,6 @@ class MySegmentation(Segmentation):
             data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
         for i, sv in enumerate(self.supervoxels_list):
             multiplier = max((negative_numbers/k + 3), 10)
-<<<<<<< HEAD
             neighbors_ = self.getKNearestSupervoxelsOf(sv, multiplier*k)
             neighbors = set(neighbors_[:k])
             neighbors_ = set(neighbors_[4*k:])
