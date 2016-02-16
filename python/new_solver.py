@@ -145,11 +145,11 @@ if __name__ == '__main__':
 	it = -1
 	prev_loss = 100000000
 	diff_loss = 100
-	min_iter = 20000
+	max_iter = conf.solver['max_iter']
 	print "--------------------------------------"
 	print "Configs for experiment:",conf.experiment_number
 	print "--------------------------------------"
-	while it < min_iter:
+	while it < max_iter:
 		it += 1
 		solver.step(1)  # SGD by Caffe
 		train_loss= np.append(train_loss, solver.net.blobs['loss'].data)

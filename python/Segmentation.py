@@ -38,7 +38,6 @@ class Segmentation(object):
             self.negative_neighbors = 1
         else:
             self.negative_neighbors = negative_neighbors
-
         self.supervoxels = {} # ID -> Supervoxel
         self.frame_to_voxels = {} # frame (int) -> Supervoxel
         self.current_frame = 1
@@ -65,12 +64,12 @@ class Segmentation(object):
         while first < last:
             first = 0
             last = len(self.supervoxels_list)
-        while first < last:
-            mid = first + (last-first+1)/2
-            if self.supervoxels_list[mid].getOverlap() > threshold:
-                first = mid
-            else:
-                last = mid-1
+            while first < last:
+                mid = first + (last-first+1)/2
+                if self.supervoxels_list[mid].getOverlap() > threshold:
+                    first = mid
+                else:
+                    last = mid-1
         return first
 
     def getLabels(self,threshold):
@@ -195,9 +194,9 @@ class Segmentation(object):
         self.supervoxels_list_corso = [x for (y, x) in sorted(zip(ids, self.supervoxels_list))]
         self.supervoxels_list.sort(key=lambda sp: sp.overlap_count, reverse=True) #Sort supervoxels_list based of the overlap amount Largest to Lowest
         self.in_process = False
-        self.createLabelledlevelvideoData()
+        self.createVoxelLabelledlevelvideoData()
 
-    def createLabelledlevelvideoData(self):
+    def createVoxelLabelledlevelvideoData(self):
         segmented_path = self.segmented_path.format(self.current_frame-1)
         orig_img = MyImage(segmented_path)
         width, height = orig_img.size
@@ -364,10 +363,10 @@ class MySegmentation(Segmentation):
             data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
         for i, sv in enumerate(self.supervoxels_list):
             multiplier = max((negative_numbers/k + 3), 10)
-            neighbors_ = self.getKNearestSupervoxelsOf(sv, multiplier*negative_numbers)
+<<<<<<< HEAD
+            neighbors_ = self.getKNearestSupervoxelsOf(sv, multiplier*k)
             neighbors = set(neighbors_[:k])
             neighbors_ = set(neighbors_[4*k:])
-            #neighbors_ = set(neighbors_[11*negative_numbers:])
             #print 'neighbors', len(neighbors)
             #neighbors_.difference_update(neighbors) #All other supervoxels except Target and its neighbors
             #TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
@@ -815,10 +814,16 @@ def main():
     segmentors = []
     vid_num = 4
     frames_per_video = 31
+
+    # from multiprocessing import Pool
     for d in range(1,vid_num):
         print 'b{0}'.format(d)
         annotator = JA(annotation_path.format(name='b'+str(d)))
         segmentor = MySegmentation(orig_path.format(d)+frame_format, seg_path.format(d,level)+frame_format, annotator)
+        # segmentor_list = []
+        # for i in xrange(frames_per_vidoe):
+            # segmentor_list.append((i, MySegmentation(orig_path.format(d)+frame_format, seg_path.format(d,level)+frame_format, annotator)))
+        # lambda seg: seg[1].processNewFrame(seg[0])
         for i in range(1, frames_per_video):
             print "processing frame {i}".format(i=i)
             segmentor.processNewFrame()

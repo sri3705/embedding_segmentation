@@ -39,6 +39,10 @@ def createJHMDB(db_settings, logger):
     #TODO: write a merge segment function?
     logger.log('*** Segment parsing ***')
     keys = ['target', 'negative'] + [ 'neighbor{0}'.format(i) for i in range(neighbor_num)]
+    # from multiprocessing import Pool
+    # pool = Pool()
+    # parallelProcess = lambda seg: seg[1].processNewFrame(seg[0])
+    fcn_path = db_settings['fcn_path']
     for action in action_name:
         for video in video_name[action]:
             logger.log('Processing action:`{action}`, video:`{video}`:'.format(action=action, video=video))
@@ -56,6 +60,10 @@ def createJHMDB(db_settings, logger):
                             negative_neighbors=n_neg,
                             fcn_path=fcn_path.format(action_name=action, video_name=video, level=level)+frame_format)
             segmentor.setFeatureType(feature_type)
+            # segmentor_list = []
+            # for i in xrange(frames_per_vidoe):
+                # segmentor_list.append((i, MySegmentation(orig_path.format(d)+frame_format, seg_path.format(d,level)+frame_format, annotator)))
+            # parallelized_segmentor_list = pool.map(parallelProcess, segmentor_list)
             for i in xrange(frame):
                 logger.log('frame {0}'.format(i+1))
                 segmentor.processNewFrame()
