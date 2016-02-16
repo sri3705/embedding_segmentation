@@ -19,7 +19,7 @@ def getJHMDBRepresentations(conf, solver):
     video_name = db_settings['video_name']
     level = db_settings['level']
     # mat = loadmat('/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/pickle/pour1.mat');
-    path = db_settings['labelledlevelvideo_path'].format(action_name=action[0], video_name=video_name[action[0]][0], level=level)
+    path = db_settings['voxellabelledlevelvideo_path'].format(action_name=action[0], video_name=video_name[action[0]][0], level=level)
     print path
     mat = loadmat(path)
     # pickle_path =
@@ -37,7 +37,7 @@ def getRepresentations(conf, net, superpixels_num):
             print i
         net.forward()
         if i%negative_numbers == 0:
-                reps[i/negative_numbers][...] = net.blobs['inner_product_target'].data[...]
+            reps[i/negative_numbers][...] = net.blobs['inner_product_target'].data[...]
         # print net.blobs['inner_product_target'].data[1:10]
     return reps
 

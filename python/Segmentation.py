@@ -114,7 +114,7 @@ class Segmentation(object):
                     self.supervoxels[color].addVoxel(x, y, frame_number, orig_img.getpixel(x, y), 0)
                 if optical_flow_path is not None:
                     flow = optical_flow_img.getpixel(x,y)
-                        self.supervoxels[color].addOpticalFlow(flow)
+                    self.supervoxels[color].addOpticalFlow(flow)
 
         #            print x,y,frame_number
         #            raise
@@ -176,9 +176,9 @@ class Segmentation(object):
         self.supervoxels_list_corso = [x for (y, x) in sorted(zip(ids, self.supervoxels_list))]
         self.supervoxels_list.sort(key=lambda sp: sp.overlap_count, reverse=True) #Sort supervoxels_list based of the overlap amount Largest to Lowest
         self.in_process = False
-        self.createLabelledlevelvideoData()
+        self.createVoxelLabelledlevelvideoData()
 
-    def createLabelledlevelvideoData(self):
+    def createVoxelLabelledlevelvideoData(self):
         segmented_path = self.segmented_path.format(self.current_frame-1)
         orig_img = MyImage(segmented_path)
         width, height = orig_img.size
@@ -665,10 +665,16 @@ def main():
     segmentors = []
     vid_num = 4
     frames_per_video = 31
+
+    # from multiprocessing import Pool
     for d in range(1,vid_num):
         print 'b{0}'.format(d)
         annotator = JA(annotation_path.format(name='b'+str(d)))
         segmentor = MySegmentation(orig_path.format(d)+frame_format, seg_path.format(d,level)+frame_format, annotator)
+        # segmentor_list = []
+        # for i in xrange(frames_per_vidoe):
+            # segmentor_list.append((i, MySegmentation(orig_path.format(d)+frame_format, seg_path.format(d,level)+frame_format, annotator)))
+        # lambda seg: seg[1].processNewFrame(seg[0])
         for i in range(1, frames_per_video):
             print "processing frame {i}".format(i=i)
             segmentor.processNewFrame()

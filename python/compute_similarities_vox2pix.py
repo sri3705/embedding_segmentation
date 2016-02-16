@@ -20,7 +20,7 @@ def getJHMDBRepresentations(conf, solver):
     video_name = db_settings['video_name']
     level = db_settings['level']
     # mat = loadmat('/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/pickle/pour1.mat');
-    path = db_settings['labelledlevelvideo_path'].format(action_name=action[0], video_name=video_name[action[0]][0], level=level)
+    path = db_settings['voxellabelledlevelvideo_path'].format(action_name=action[0], video_name=video_name[action[0]][0], level=level)
     print path
     mat = loadmat(path)
     # pickle_path =
@@ -81,21 +81,23 @@ def computeSimilarities(config_id):
 
 def buildVoxel2PixelSimilarities(config_id):
     conf = getConfigs(config_id)
+    db_settings = conf.db_settings
     #Load similarities
     mat = loadmat(conf.experiments_path+'/similarities.mat')
     voxelSimilarities = mat['similarities']
     #Load superpixel information (1-based)
-    mat = loadmat('/cs/vml3/mkhodaba/cvpr16/Graph_construction/Features/vw_commercial_vidinfo.mat')
+    # mat = loadmat('/cs/vml3/mkhodaba/cvpr16/Graph_construction/Features/vw_commercial_vidinfo.mat')
+    video_name = db_settings['action_name'][0]
+    mat = loadmat('/cs/vml2/mkhodaba/cvpr16/VSB100/VideoProcessingTemp/{}/vidinfo.mat'.format(video_name))
     mapped = mat['mapped']
     numberofsuperpixelsperframe = mat['numberofsuperpixelsperframe']
     total_superpixels_num = np.sum(numberofsuperpixelsperframe)
     pixellabelledlevelvideo=mat['labelledlevelvideo']
     #Load supervoxel information (1-based)
-    db_settings = conf.db_settings
     action = db_settings['action_name']
     video_name = db_settings['video_name']
     level = db_settings['level']
-    path = db_settings['labelledlevelvideo_path'].format(action_name=action[0], video_name=video_name[action[0]][0], level=level)
+    path = db_settings['voxellabelledlevelvideo_path'].format(action_name=action[0], video_name=video_name[action[0]][0], level=level)
     mat = loadmat(path)
     voxellabelledlevelvideo=mat['labelledlevelvideo']
     #A simple check
