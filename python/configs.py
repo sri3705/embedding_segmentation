@@ -7,6 +7,7 @@ from Segmentation import *
 class Config:
     def __init__(self, experiment_number=None, comment=None):
         self.experiments_root = '/cs/vml2/smuralid/projects/eccv16/experiments/'
+        self.visualization_path = '/cs/vml2/smuralid/projects/embedding_segmentation/python/Visualization/'
         self.comment = comment
         if not experiment_number:
             self.__create_config__()
@@ -62,7 +63,7 @@ class Config:
             'net':    		self.model['test_prototxt_path'],
             '_train_net':    	self.model['model_prototxt_path'],
             '_test_nets':    	self.model['test_prototxt_path'],
-            'max_iter':    	10000,
+            'max_iter':    	20000,
             '_train_interval':    500,
             '_termination_threshold':0.0004,
             '_solver_prototxt_path':    self.experiments_path+'/solver.prototxt',
@@ -86,7 +87,7 @@ class Config:
             'action_name':    		['vw_commercial'], #['pour'],
             'level':    		3,
             'video_name':    		{},
-            'frame':    		24,
+            'frame':    		21,
             'frame_format':    		self.frame_format,
             'number_of_negatives':  self.model['number_of_negatives'],
             'number_of_neighbors':    	self.model['number_of_neighbors'],
@@ -109,7 +110,8 @@ class Config:
             'database_path':    	'/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/{level:02d}.h5',
             # 'pickle_path':    		'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/pickle/{action_name}/{video_name}/{level:02d}.p',
             'pickle_path':    		'/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/{level:02d}.p',
-            'labelledlevelvideo_path':    		'/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/{level:02d}.mat',
+            'pixellabelledlevelvideo_path':    		'/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/pixellabelledlevelvideo_{level:02d}.mat',
+            'voxellabelledlevelvideo_path':         '/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/voxellabelledlevelvideo_{level:02d}.mat',
             'test_database_list_path':    self.experiments_path+'/database_list_{name}.txt',
             'database_list_path':    	self.model['database_list_path'],
             'feature_type':    		self.model['feature_type'],
@@ -148,6 +150,12 @@ class Config:
             self.model['number_of_neighbors'] = vsb100['number_of_neighbors'] * (2 * vsb100['neighbor_frames_num']+1) #total number of neighbors
             return vsb100
 
+    def getPath(self, key):
+        level = self.db_settings['level']
+        action_name = self.db_settings['action_name'][0]
+        video_name = self.db_settings['video_name'][action_name][0]
+        path = self.db_settings[key]
+        return path.format(level=level, action_name=action_name, video_name=video_name)
 
     def save(self):
         '''

@@ -433,7 +433,7 @@ class MySegmentation(Segmentation):
                 data['negative'][new_idx][...] = self._scale(negatives[neg].getFCN()) + negatives[neg].getOpticalFlow()
 
         print "[Segmentation::_extract_fcn] -- data['target'] shape:", data['target'].shape
-        return data
+        return [data, [len(self.supervoxels_list[0].getFCN()),len(self.supervoxels_list[0].getOpticalFlow())]]
 
     def _extract_clr_hof(self, k, negative_numbers):
         assert k >= 2, 'K < 2: At least 2 neighbors is needed'

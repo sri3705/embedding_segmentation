@@ -79,8 +79,17 @@ def createJHMDB(db_settings, logger):
             db_path = database_path.format(action_name=action, video_name=video, level=level)
             database = DB(db_path)
             features = segmentor.getFeatures(neighbor_num,feature_type=feature_type)
-            for name, data in features.iteritems():
-                database.save(data, name)
+            if type(feature_type) is list:
+                feat_size = features[-1]
+                features = features[0]
+                for _id, feature_type_i in enumerate(feature_type):
+                    idx1 = sum(feat_size[:_id])
+                    idx2 = sum(feat_size[:(_id + 1)])
+                    for name, data in features.iteritems():
+                        database.save(data[..., idx1:idx2], feature_type_i.name + '_' + name)
+            else:
+                for name, data in features.iteritems():
+                    database.save(data, name)
             database.close()
             logger.log("Segment {0} Done!\n".format(action))
     write_db_list(db_settings, logger)
