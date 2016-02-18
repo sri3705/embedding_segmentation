@@ -64,11 +64,14 @@ def createJHMDB(db_settings, logger):
             # for i in xrange(frames_per_vidoe):
                 # segmentor_list.append((i, MySegmentation(orig_path.format(d)+frame_format, seg_path.format(d,level)+frame_format, annotator)))
             # parallelized_segmentor_list = pool.map(parallelProcess, segmentor_list)
+            s = time.time()
             for i in xrange(frame):
                 logger.log('frame {0}'.format(i+1))
                 segmentor.processNewFrame()
             segmentor.doneProcessing()
+            print 'Elapsed time:', time.time() - s
             logger.log("Total number of supervoxels: {0}".format(len(segmentor.supervoxels)))
+
             logger.log('*** Pickling ***')
             s = time.time()
             logger.log('Elapsed time: {0}'.format(time.time()-s))
@@ -79,17 +82,8 @@ def createJHMDB(db_settings, logger):
             db_path = database_path.format(action_name=action, video_name=video, level=level)
             database = DB(db_path)
             features = segmentor.getFeatures(neighbor_num,feature_type=feature_type)
-            if type(feature_type) is list:
-                feat_size = features[-1]
-                features = features[0]
-                for _id, feature_type_i in enumerate(feature_type):
-                    idx1 = sum(feat_size[:_id])
-                    idx2 = sum(feat_size[:(_id + 1)])
-                    for name, data in features.iteritems():
-                        database.save(data[..., idx1:idx2], feature_type_i.name + '_' + name)
-            else:
-                for name, data in features.iteritems():
-                    database.save(data, name)
+            for name, data in features.iteritems():
+                database.save(data, name)
             database.close()
             logger.log("Segment {0} Done!\n".format(action))
     write_db_list(db_settings, logger)

@@ -27,8 +27,8 @@ def getJHMDBRepresentations(conf, solver):
     return getRepresentations(conf, solver, superpixels_num)
 
 def getRepresentations(conf, net, superpixels_num):
-    #data = net.blobs['inner_product_target'].data
-    data = net.blobs['InnerProduct1'].data
+    data = net.blobs['inner_product_target'].data
+    #data = net.blobs['InnerProduct1'].data
     assert data.shape[0] == 1, 'batch size != ? ... this assert is not important'
     feature_len = data.shape[1]
     reps = np.zeros((superpixels_num, feature_len))
@@ -41,7 +41,7 @@ def getRepresentations(conf, net, superpixels_num):
             print i
         net.forward()
         if i%negative_numbers == 0:
-            reps[i/negative_numbers][...] = net.blobs['InnerProduct1'].data[...]
+            reps[i/negative_numbers][...] = net.blobs['inner_product_target'].data
         # print net.blobs['inner_product_target'].data[1:10]
     return reps
 

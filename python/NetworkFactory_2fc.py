@@ -44,26 +44,12 @@ class Network:
     	for l in range(1, self.number_of_neighbors+1):
     		setattr(self.net, 'neighbor{0}'.format(l-1), dataLayer[l])
 
-    	#First layer of inner product
+        #First layer of inner product
     	self.net.inner_product_target_1 = self.getInnerProduct('target', 'inner_product_target_1', 2, num_output=1000)
     	self.net.inner_product_negative_1 = self.getInnerProduct('negative', 'inner_product_negative_1', 2, num_output=1000)
     	for i in range(0, self.number_of_neighbors):
     		layer = self.getInnerProduct('neighbor{0}'.format(i), 'inner_product_neighbor{0}_1'.format(i), 2, num_output=1000)
     		setattr(self.net, 'inner_product_neighbor{0}_1'.format(i), layer)
-
-        #Relu on top of the fisrt inner product
-    	self.net.relu_target_1 = L.ReLU(self.net.inner_product_target_1, name='relu_target_1', in_place=True)
-    	self.net.relu_negative_1 = L.ReLU(self.net.inner_product_negative_1, name='relu_negative_1', in_place=True)
-    	for i in range(0, self.number_of_neighbors):
-    		layer = L.ReLU(getattr(self.net, 'inner_product_neighbor{0}_1'.format(i)),
-    				name='relu_neighbor{0}_1'.format(i),
-    				in_place=True)
-    		setattr(self.net, 'relu_neighbor{0}_1'.format(i), layer)
-
-        #Dropout1
-        #self.net.dropout_target_1 = L.Dropout(self.net.relu_target_1, name='dropout_target_1', in_place=True)
-        #self.net.dropout_negative_1 = L.Dropout(self.net.relu_negative_1, name='dropout_negative_1', in_place=True)
-
 
     	#Second layer of inner product
     	self.net.inner_product_target = self.getInnerProduct('inner_product_target_1', 'inner_product_target', 1)
@@ -72,7 +58,7 @@ class Network:
     		layer = self.getInnerProduct('inner_product_neighbor{0}_1'.format(i), 'inner_product_neighbor{0}'.format(i), 1)
     		setattr(self.net, 'inner_product_neighbor{0}'.format(i), layer)
 
-    	#ReLU2
+    	#ReLU on top of the second inner product
     	self.net.relu_target = L.ReLU(self.net.inner_product_target, name='relu_target', in_place=True)
     	self.net.relu_negative = L.ReLU(self.net.inner_product_negative, name='relu_negative', in_place=True)
     	for i in range(0, self.number_of_neighbors):

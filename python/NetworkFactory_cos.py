@@ -31,6 +31,17 @@ class Network:
     						    dict(name="embed_b{0}".format(ID), lr_mult=self.b_lr_mult, decay_mult=self.b_decay_mult)])
     					)
 
+    def l2normed(self,vec, dim):
+        #Returns L2-normalized instances of vec; i.e., for each instance x in vec,
+        #computes  x / ((x ** 2).sum() ** 0.5). Assumes vec has shape N x dim."""
+        denom = L.Reduction(vec, axis=1, operation=P.Reduction.SUMSQ)
+        denom = L.Power(denom, power=(-0.5), shift=1e-12)
+        denom = L.Reshape(denom, num_axes=0, axis=-1, shape=dict(dim=[1]))
+        denom = L.Tile(denom, axis=1, tiles=dim)
+
+        return L.Eltwise(vec, denom, operation=P.Eltwise.PROD)
+
+
     def createEmbeddingNetwork(self, database_list_path='.', batch_size=20, phase=0):
     	dataset_path = database_list_path
     	dataLayer = L.HDF5Data(name='dataLayer',
@@ -44,35 +55,15 @@ class Network:
     	for l in range(1, self.number_of_neighbors+1):
     		setattr(self.net, 'neighbor{0}'.format(l-1), dataLayer[l])
 
+
     	#First layer of inner product
-    	self.net.inner_product_target_1 = self.getInnerProduct('target', 'inner_product_target_1', 2, num_output=1000)
-    	self.net.inner_product_negative_1 = self.getInnerProduct('negative', 'inner_product_negative_1', 2, num_output=1000)
+    	self.net.inner_product_target = self.getInnerProduct('target', 'inner_product_target', 1)
+    	self.net.inner_product_negative = self.getInnerProduct('negative', 'inner_product_negative', 1)
     	for i in range(0, self.number_of_neighbors):
-    		layer = self.getInnerProduct('neighbor{0}'.format(i), 'inner_product_neighbor{0}_1'.format(i), 2, num_output=1000)
-    		setattr(self.net, 'inner_product_neighbor{0}_1'.format(i), layer)
-
-        #Relu on top of the fisrt inner product
-    	self.net.relu_target_1 = L.ReLU(self.net.inner_product_target_1, name='relu_target_1', in_place=True)
-    	self.net.relu_negative_1 = L.ReLU(self.net.inner_product_negative_1, name='relu_negative_1', in_place=True)
-    	for i in range(0, self.number_of_neighbors):
-    		layer = L.ReLU(getattr(self.net, 'inner_product_neighbor{0}_1'.format(i)),
-    				name='relu_neighbor{0}_1'.format(i),
-    				in_place=True)
-    		setattr(self.net, 'relu_neighbor{0}_1'.format(i), layer)
-
-        #Dropout1
-        #self.net.dropout_target_1 = L.Dropout(self.net.relu_target_1, name='dropout_target_1', in_place=True)
-        #self.net.dropout_negative_1 = L.Dropout(self.net.relu_negative_1, name='dropout_negative_1', in_place=True)
-
-
-    	#Second layer of inner product
-    	self.net.inner_product_target = self.getInnerProduct('inner_product_target_1', 'inner_product_target', 1)
-    	self.net.inner_product_negative = self.getInnerProduct('inner_product_negative_1', 'inner_product_negative', 1)
-    	for i in range(0, self.number_of_neighbors):
-    		layer = self.getInnerProduct('inner_product_neighbor{0}_1'.format(i), 'inner_product_neighbor{0}'.format(i), 1)
+    		layer = self.getInnerProduct('neighbor{0}'.format(i), 'inner_product_neighbor{0}'.format(i), 1)
     		setattr(self.net, 'inner_product_neighbor{0}'.format(i), layer)
 
-    	#ReLU2
+    	#ReLU
     	self.net.relu_target = L.ReLU(self.net.inner_product_target, name='relu_target', in_place=True)
     	self.net.relu_negative = L.ReLU(self.net.inner_product_negative, name='relu_negative', in_place=True)
     	for i in range(0, self.number_of_neighbors):
@@ -126,18 +117,38 @@ class Network:
 
     	#self.net.
 
+        #Next section: normalizing embedding
+
+        #Target - Negative
+        self.net.target_norm = self.l2normed(self.net.inner_product_target, self.num_output)
+        self.net.negative_norm = self.l2normed(self.net.inner_product_negative, self.num_output)
+        self.net.context_norm = self.l2normed(self.net.context_sum, self.num_output)
+
+        self.net.target_negative_diff = L.Eltwise(self.net.target_norm, self.net.negative_norm,
+                               name='target_negative_diff',
+                               operation=P.Eltwise.SUM, # SUM
+                               coeff=list([1,-1])) # target - negative
+
+        #Loss layer
+        self.net.loss = L.Python(self.net.context_norm, self.net.target_negative_diff,
+                       name='loss',
+                       module='my_dot_product_layer',
+                       layer='MyHingLossDotProductLayer')
+
+        #End of normalizing
+
     	#Target - Negative
-    	self.net.target_negative_diff = L.Eltwise(self.net.inner_product_target, self.net.inner_product_negative,
-    							name='target_negative_diff',
-    							operation=P.Eltwise.SUM, # SUM
-    							coeff=list([1,-1])) # target - negative
-
-
-    	#Loss layer
-    	self.net.loss = L.Python(self.net.context_sum, self.net.target_negative_diff,
-    					name='loss',
-    					module='my_dot_product_layer',
-    					layer='MyHingLossDotProductLayer')
+#    	self.net.target_negative_diff = L.Eltwise(self.net.inner_product_target, self.net.inner_product_negative,
+#    							name='target_negative_diff',
+#    							operation=P.Eltwise.SUM, # SUM
+#    							coeff=list([1,-1])) # target - negative
+#
+#
+#    	#Loss layer
+#    	self.net.loss = L.Python(self.net.context_sum, self.net.target_negative_diff,
+#    					name='loss',
+#    					module='my_dot_product_layer',
+#    					layer='MyHingLossDotProductLayer')
 
 
 

@@ -61,8 +61,14 @@ class Network:
     		setattr(self.net, 'relu_neighbor{0}_1'.format(i), layer)
 
         #Dropout1
-        #self.net.dropout_target_1 = L.Dropout(self.net.relu_target_1, name='dropout_target_1', in_place=True)
-        #self.net.dropout_negative_1 = L.Dropout(self.net.relu_negative_1, name='dropout_negative_1', in_place=True)
+        self.net.dropout_target_1 = L.Dropout(self.net.relu_target_1, name='dropout_target_1', in_place=True, dropout_ratio=0.1)
+        self.net.dropout_negative_1 = L.Dropout(self.net.relu_negative_1, name='dropout_negative_1', in_place=True, dropout_ratio=0.1)
+    	for i in range(0, self.number_of_neighbors):
+    		layer = L.Dropout(getattr(self.net, 'inner_product_neighbor{0}_1'.format(i)),
+    				name='dropout_neighbor{0}_1'.format(i),
+                    dropout_ratio=0.1,
+    				in_place=True)
+    		setattr(self.net, 'dropout_neighbor{0}_1'.format(i), layer)
 
 
     	#Second layer of inner product
