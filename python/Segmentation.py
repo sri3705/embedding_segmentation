@@ -395,6 +395,50 @@ class MySegmentation(Segmentation):
         print "[Segmentation::_extract_fcn] -- data['target'] shape:", data['target'].shape
         return data
 
+    def _extract_fcn_hof_new(self, k, negative_numbers):
+        assert k >= 2, 'K < 2: At least 2 neighbors is needed'
+        supervoxels = set(self.supervoxels_list)
+        feature_len = len(self.supervoxels_list[0].getFCN() + self.supervoxels_list[0].getOpticalFlow())
+        n = len(supervoxels) * negative_numbers
+        data = {'target':self.dummyData(n, feature_len), 'negative':self.dummyData(n, feature_len)}
+        for i in range(k):
+            data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
+        for i, sv in enumerate(self.supervoxels_list):
+            multiplier = max((negative_numbers/k + 3), 10)
+            neighbors_ = self.getKNearestSupervoxelsOf(sv, multiplier*k)
+            neighbors = set(neighbors_[:k])
+            neighbors_ = set(neighbors_[4*k:])
+            #print 'neighbors', len(neighbors)
+            #neighbors_.difference_update(neighbors) #All other supervoxels except Target and its neighbors
+            #TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
+            # Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
+            #negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
+            negatives = random.sample(neighbors_, negative_numbers) #Sample one supervoxel as negative
+
+            #neighbors.remove(sv)
+
+            #when everything is done we put back neighbors to the set
+            #supervoxels.update(neighbors)
+            #supervoxels.add(sv)
+            features_names = ['FCN', 'HOF']
+            getFeatureFunc = {'FCN': lambda supvo: self._scale(supvo.getFCN()), 'HOF': lambda supvo: supvo.getOpticalFlow()}
+            for feat in features:
+                idx = i*negative_numbers
+                data['{}_target'.format(feat)][idx][...] = getFeatureFunc[feat](sv)#self._scale(sv.getFCN()) + sv.getOpticalFlow()
+                for j, nei in enumerate(neighbors):
+                    data['{}_neighbor{}'.format(feat, j)][idx][...] = featFeatureFunc[feat](nei)#self._scale(nei.getFCN()) + nei.getOpticalFlow()
+                data['{}_negative'.format(feat)][idx][...] = featFeatureFunc[feat](negatives[0])#self._scale(negatives[0].getFCN()) 0+ negatives[0].getOpticalFlow()
+                for neg in xrange(1, negative_numbers):
+                    new_idx = idx+neg
+                    data['{}_target'.format(feat)][new_idx][...] = data['{}_target'.format(feat)][idx][...]
+                    for j, nei in enumerate(neighbors):
+                        data['{}_neighbor{}'.format(feat, j)][new_idx][...] = data['{}_neighbor{}'.format(feat,j)][idx][...]
+                    data['{}_negative'.format(feat)][new_idx][...] = featFeatureFunc[feat](negatives[neg])#self._scale(negatives[neg].getFCN()) + negatives[neg].getOpticalFlow()
+
+        print "[Segmentation::_extract_fcn] -- data['target'] shape:", data['target'].shape
+        #return [data, [len(self.supervoxels_list[0].getFCN()), len(self.supervoxels_list[0].getOpticalFlow())]]
+        return data
+
     def _extract_fcn_hof(self, k, negative_numbers):
         assert k >= 2, 'K < 2: At least 2 neighbors is needed'
         supervoxels = set(self.supervoxels_list)
@@ -433,6 +477,7 @@ class MySegmentation(Segmentation):
                 data['negative'][new_idx][...] = self._scale(negatives[neg].getFCN()) + negatives[neg].getOpticalFlow()
 
         print "[Segmentation::_extract_fcn] -- data['target'] shape:", data['target'].shape
+        #return [data, [len(self.supervoxels_list[0].getFCN()), len(self.supervoxels_list[0].getOpticalFlow())]]
         return data
 
     def _extract_clr_hof(self, k, negative_numbers):
@@ -718,6 +763,8 @@ class MySegmentation(Segmentation):
         '''
         negative_neighbors = self.negative_neighbors
         assert k >= 2, 'K < 2: At least 2 neighbors is needed'
+        if len(feature_type) == 1:
+            feature_type = feature_type[0]
         if feature_type == FeatureType.COLOR_HISTOGRAM:
             return self._extract_color_histogram_new(k, negative_neighbors)
         elif feature_type == FeatureType.MBH:

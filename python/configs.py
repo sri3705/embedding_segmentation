@@ -44,12 +44,12 @@ class Config:
             'model_prototxt_path':    self.experiments_path+'/model.prototxt',
             'test_prototxt_path':    self.experiments_path+'/test.prototxt',
             'database_list_path':    self.experiments_path+'/database_list.txt',
-            'feature_type':    	[FeatureType.HOF]#FeatureType.COLOR_HISTOGRAM#
+            'feature_type':    	[FeatureType.FCN, FeatureType.HOF]#FeatureType.COLOR_HISTOGRAM#
         }
 
         self.solver = {
             'weight_decay':    	0.00001,
-            'base_lr':    	    0.1,
+            'base_lr':    	    0.01,
             'momentum':     	0.9,
             'gamma':    	    0.8,
             'power':    	    0.75,
@@ -58,12 +58,12 @@ class Config:
             'test_iter':    	1,
             'snapshot':    	2000,
             'lr_policy':     	"step",
-            'stepsize':    	200,
+            'stepsize':    	1000,
             'snapshot_prefix':    self.experiments_path+'/snapshot/',
             'net':    		self.model['test_prototxt_path'],
             '_train_net':    	self.model['model_prototxt_path'],
             '_test_nets':    	self.model['test_prototxt_path'],
-            'max_iter':    	5000,
+            'max_iter':    	10000,
             '_train_interval':    500,
             '_termination_threshold':0.0004,
             '_solver_prototxt_path':    self.experiments_path+'/solver.prototxt',
@@ -85,7 +85,7 @@ class Config:
         jhmdb = {
             'db':    			'jhmdb',
             'action_name':    		['vw_commercial'], #['pour'],
-            'level':    		10,
+            'level':    		8,
             'video_name':    		{},
             'frame':    		21,
             'frame_format':    		self.frame_format,
