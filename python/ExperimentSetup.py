@@ -19,13 +19,14 @@ def labelledlevelvideo_generator(conf):
     segmented_path = conf.getPath('segmented_path')
     # out_path1 = conf.db_settings['pixellabelledlevelvideo_path'].format(video_name=video_name, action_name=action_name, level=level)
     frame_number = conf.db_settings['frame']
+    #frame_number = 21
     out_path = conf.getPath('pixellabelledlevelvideo_path')
     # assert out_path1 == out_path2
     import glob
     img = Image.open(glob.glob(segmented_path+"*.ppm")[0])
     size = img.size
-    sups_nums = np.zeros((1,21))
-    mat = np.zeros((size[1]/2, size[0]/2, 21))
+    sups_nums = np.zeros((1,frame_number))
+    mat = np.zeros((size[1]/2, size[0]/2, frame_number))
     print '[ExperimentSetup::labelledlevelvideo_generator] creating labelledlevelvideo.mat'
     for i,img_path in enumerate(glob.glob(segmented_path+"*.ppm")):
         if i == frame_number:
@@ -47,7 +48,7 @@ def labelledlevelvideo_generator(conf):
     savemat(out_path, {'labelledlevelvideo':mat, 'numberofsuperpixelsperframe':sups_nums})
 
 
-def setup_experiment(extract_features=False, visualization=False, comment=None):
+def setup_experiment(extract_features=False, visualization=False, comment=None, compute_segment=False):
     # need to extract features?
     config = getConfigs(comment=comment)
     print "Experiment number:", config.experiment_number
@@ -64,17 +65,24 @@ def setup_experiment(extract_features=False, visualization=False, comment=None):
            if not key.startswith('_'):
                f.write('{key}:{val}\n'.format(key=key, val='"{0}"'.format(val) if isinstance(val, str) else val))
 
+    out_path = config.getPath('pixellabelledlevelvideo_path')
     if extract_features:
         print 'extract features'
-        labelledlevelvideo_generator(config)
+        if compute_segment:
+            config.db_settings['compute_segment'] = True
+        else:
+            config.db_settings['compute_segment'] = False
+        if not os.path.exists(out_path):
+            print 'labels are not there. Computing labelledlevelvideo_pixels'
+            labelledlevelvideo_generator(config)
         createDatabase(config.db, config.db_settings, logger)
         #TODO create the database list
         #TODO: probably in configs need to set how to merge them: for now separately
     else:
         write_db_list(config.db_settings, logger)
     logger.close()
-    out_path = config.getPath('pixellabelledlevelvideo_path')
     if not os.path.exists(out_path):
+        print 'labels are not there'
         labelledlevelvideo_generator(config)
    #TODO save configs
     config.save()
@@ -84,8 +92,12 @@ if __name__=='__main__':
         extract_features = True
     else:
         extract_features = False
+    if "-s" in sys.argv:
+        compute_segment = True
+    else:
+        compute_segment = False
     comment = ''
     i = sys.argv.index('-m')
     comment = sys.argv[i+1]
     print "extract_features = ", extract_features
-    setup_experiment(extract_features=extract_features, visualization=False, comment=comment)
+    setup_experiment(extract_features=extract_features, visualization=False, comment=comment, compute_segment=compute_segment)
