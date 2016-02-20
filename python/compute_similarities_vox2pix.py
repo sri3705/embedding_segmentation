@@ -32,7 +32,7 @@ def getRepresentations(conf, net, superpixels_num):
     assert data.shape[0] == 1, 'batch size != ? ... this assert is not important'
     feature_len = data.shape[1]
     reps = np.zeros((superpixels_num, feature_len))
-    negative_numbers = conf.model['number_of_negatives'] 
+    negative_numbers = conf.model['number_of_negatives']
     for i in xrange(superpixels_num*negative_numbers):
         if i%1000==1:
             print i
@@ -50,8 +50,8 @@ def computeDistanceMatrix(representations):
 def getLastAddedFile(path):
     search_dir = path
     # remove anything from the list that is not a file (directories, symlinks)
-    # thanks to J.F. Sebastion for pointing out that the requirement was a list 
-    # of files (presumably not including directories)  
+    # thanks to J.F. Sebastion for pointing out that the requirement was a list
+    # of files (presumably not including directories)
     files = filter(os.path.isfile, glob.glob(search_dir + "*"))
     files.sort(key=lambda x: os.path.getmtime(x))
     return files[-2]
@@ -65,7 +65,7 @@ def computeSimilarities(config_id):
     test_model_path = conf.model['test_prototxt_path']
     test_model =  caffe.Net(test_model_path, caffemodel_path, caffe.TEST)
     print "last snapshot is:", caffemodel_path
-    print 'Experiment number:', conf.experiment_number 
+    print 'Experiment number:', conf.experiment_number
     print 'creating model'
     if conf.db == 'vsb100':
         print 'vsb100'
@@ -88,8 +88,9 @@ def buildVoxel2PixelSimilarities(config_id):
     voxelSimilarities = mat['similarities']
     #Load superpixel information (1-based)
     # mat = loadmat('/cs/vml3/mkhodaba/cvpr16/Graph_construction/Features/vw_commercial_vidinfo.mat')
+    level = db_settings['level']
     video_name = db_settings['action_name'][0]
-    mat = loadmat('/cs/vml2/mkhodaba/cvpr16/VSB100/VideoProcessingTemp/{0}/vidinfo_{1:02d}.mat'.format(video_name, conf.db_settings['level']))
+    mat = loadmat('/cs/vml2/smuralid/projects/eccv16/dataset/VSB100/VideoProcessingTemp/{0}/vidinfo_{1:02d}.mat'.format(video_name, level))
     mapped = mat['mapped']
     numberofsuperpixelsperframe = mat['numberofsuperpixelsperframe']
     total_superpixels_num = np.sum(numberofsuperpixelsperframe)
@@ -97,7 +98,6 @@ def buildVoxel2PixelSimilarities(config_id):
     #Load supervoxel information (1-based)
     action = db_settings['action_name']
     video_name = db_settings['video_name']
-    level = db_settings['level']
     path = db_settings['voxellabelledlevelvideo_path'].format(action_name=action[0], video_name=video_name[action[0]][0], level=level)
     mat = loadmat(path)
     voxellabelledlevelvideo=mat['labelledlevelvideo']
@@ -105,8 +105,8 @@ def buildVoxel2PixelSimilarities(config_id):
     # assert voxellabelledlevelvideo.shape == pixellabelledlevelvideo.shape, "voxel and pixel information doesn't matchi: %s != %s" % (voxellabelledlevelvideo.shape, pixellabelledlevelvideo.shape)
     voxel_shape = voxellabelledlevelvideo.shape
     pixel_shape = pixellabelledlevelvideo.shape
-    assert voxel_shape[0] == 2 * pixel_shape[0] 
-    assert voxel_shape[1] == 2 * pixel_shape[1] 
+    assert voxel_shape[0] == 2 * pixel_shape[0]
+    assert voxel_shape[1] == 2 * pixel_shape[1]
     height, width, frames = pixellabelledlevelvideo.shape
     print 'frames, width, height', frames, width, height
     #Do the mapping
@@ -145,7 +145,7 @@ def buildVoxel2PixelSimilarities(config_id):
     with h5py.File(conf.experiments_path+'/similarities_superpixels.h','w') as hf:
         similarities = np.array(similarities)
         print 'similarities converted to np.array'
-        hf.create_dataset('similarities', data=similarities) 
+        hf.create_dataset('similarities', data=similarities)
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
@@ -155,5 +155,5 @@ if __name__ == '__main__':
         print '[compute_similarities_vox2pix.py::__main__] compute voxel similarities'
         config_id = int(sys.argv[1])
         # computeSimilarities(config_id)
-        print '[compute_similarities_vox2pix.py::__main__] compute voxel2pixel similarities' 
+        print '[compute_similarities_vox2pix.py::__main__] compute voxel2pixel similarities'
         buildVoxel2PixelSimilarities(config_id)

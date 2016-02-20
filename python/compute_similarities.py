@@ -28,6 +28,7 @@ def getJHMDBRepresentations(conf, solver):
 
 def getRepresentations(conf, net, superpixels_num):
     data = net.blobs['inner_product_target'].data
+    #data = net.blobs['InnerProduct1'].data
     assert data.shape[0] == 1, 'batch size != ? ... this assert is not important'
     feature_len = data.shape[1]
     reps = np.zeros((superpixels_num, feature_len))
@@ -40,7 +41,7 @@ def getRepresentations(conf, net, superpixels_num):
             print i
         net.forward()
         if i%negative_numbers == 0:
-            reps[i/negative_numbers][...] = net.blobs['inner_product_target'].data[...]
+            reps[i/negative_numbers][...] = net.blobs['inner_product_target'].data
         # print net.blobs['inner_product_target'].data[1:10]
     return reps
 
@@ -54,6 +55,7 @@ def getLastAddedFile(path):
     # remove anything from the list that is not a file (directories, symlinks)
     # thanks to J.F. Sebastion for pointing out that the requirement was a list
     # of files (presumably not including directories)
+    print path
     files = filter(os.path.isfile, glob.glob(search_dir + "*"))
     files.sort(key=lambda x: os.path.getmtime(x))
     return files[-2]
@@ -61,7 +63,7 @@ def getLastAddedFile(path):
 def computeSimilarities(config_id):
     conf = getConfigs(config_id)
     snapshot_path = conf.solver['snapshot_prefix']
-    caffemodel_path = getLastAddedFile(snapshot_path + '/')
+    caffemodel_path = getLastAddedFile(snapshot_path)
     caffe.set_mode_gpu()
     db_settings = conf.db_settings
     test_model_path = conf.model['test_prototxt_path']

@@ -15,11 +15,11 @@ def labelledlevelvideo_generator(conf):
 
     # action_name = conf.db_settings['action_name'][0]
     # video_name = conf.db_settings['video_name'][action_name][0]
-    # level = 10 
+    # level = 10
     segmented_path = conf.getPath('segmented_path')
     # out_path1 = conf.db_settings['pixellabelledlevelvideo_path'].format(video_name=video_name, action_name=action_name, level=level)
-    # frame_number = conf.db_settings['frame']
-    frame_number = 21 
+    frame_number = conf.db_settings['frame']
+    #frame_number = 21
     out_path = conf.getPath('pixellabelledlevelvideo_path')
     # assert out_path1 == out_path2
     import glob
@@ -45,7 +45,7 @@ def labelledlevelvideo_generator(conf):
                 mat[h/2][w/2][i] = colors[pix]
         sups_nums[0,i] = counter-1
     from scipy.io import savemat
-    savemat(out_path, {'labelledlevelvideo':mat, 'numberofsuperpixelsperframe':sups_nums}) 
+    savemat(out_path, {'labelledlevelvideo':mat, 'numberofsuperpixelsperframe':sups_nums})
 
 
 def setup_experiment(extract_features=False, visualization=False, comment=None, compute_segment=False):
@@ -67,7 +67,6 @@ def setup_experiment(extract_features=False, visualization=False, comment=None, 
 
     out_path = config.getPath('pixellabelledlevelvideo_path')
     if extract_features:
-       #TODO: ^^^^ add neighbor_num to db_settigs shit!
         print 'extract features'
         if compute_segment:
             config.db_settings['compute_segment'] = True
@@ -75,7 +74,7 @@ def setup_experiment(extract_features=False, visualization=False, comment=None, 
             config.db_settings['compute_segment'] = False
         if not os.path.exists(out_path):
             print 'labels are not there. Computing labelledlevelvideo_pixels'
-            labelledlevelvideo_generator(config) 
+            labelledlevelvideo_generator(config)
         createDatabase(config.db, config.db_settings, logger)
         #TODO create the database list
         #TODO: probably in configs need to set how to merge them: for now separately
@@ -84,7 +83,7 @@ def setup_experiment(extract_features=False, visualization=False, comment=None, 
     logger.close()
     if not os.path.exists(out_path):
         print 'labels are not there'
-        labelledlevelvideo_generator(config) 
+        labelledlevelvideo_generator(config)
    #TODO save configs
     config.save()
 
@@ -98,7 +97,6 @@ if __name__=='__main__':
     else:
         compute_segment = False
     comment = ''
-    # if "-m" in sys.argv:
     i = sys.argv.index('-m')
     comment = sys.argv[i+1]
     print "extract_features = ", extract_features

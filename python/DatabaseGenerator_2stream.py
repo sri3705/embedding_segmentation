@@ -10,115 +10,11 @@ from configs import getConfigs
 
 def createDatabase(db_name, db_settings, logger):
     if db_name == 'jhmdb':
-        # createJHMDB(db_settings, logger)
-        createJHMDBParallel(db_settings, logger)
+        createJHMDB(db_settings, logger)
     elif db_name == 'ucf_sports':
         createUCFSports(db_settings, logger)
     elif db_name == 'vsb100':
         createVSB100(db_settings, logger)
-
-def parallelProcess(inp):
-    i, segg = inp
-    print 'parallelProcess on frame', i
-    segg.processNewFramePar(i+1)
-    return segg
-
-def createJHMDBParallel(db_settings, logger):
-    frame_format = db_settings['frame_format']
-    action_name = db_settings['action_name']
-    video_name = db_settings['video_name']
-    annotation_path = db_settings['annotation_path']
-    segmented_path = db_settings['segmented_path']
-    orig_path = db_settings['orig_path']
-    level = db_settings['level']
-    frame = db_settings['frame']
-    n_neg = db_settings['number_of_negatives']
-    pickle_path = db_settings['pickle_path']
-    neighbor_num = db_settings['number_of_neighbors'] #TODO add this to db_settings in experimentSetup
-    database_path = db_settings['database_path']
-    database_list_path = db_settings['database_list_path']
-    features_path = db_settings['features_path']
-    feature_type = db_settings['feature_type']
-    labelledlevelvideo_path = db_settings['voxellabelledlevelvideo_path']
-    optical_flow_path = db_settings['optical_flow_path']
-    compute_segment = db_settings['compute_segment']
-    #TODO: maybe we should save them segarately
-    #TODO: write a merge segment function?
-    logger.log('*** Segment parsing ***')
-    keys = ['target', 'negative'] + [ 'neighbor{0}'.format(i) for i in range(neighbor_num)]
-    fcn_path = db_settings['fcn_path']
-    for action in action_name:
-        for video in video_name[action]:
-            logger.log('Processing action:`{action}`, video:`{video}`:'.format(action=action, video=video))
-            try:
-                annotator = JA(annotation_path.format(action_name=action, video_name=video))
-            except:
-                annotator = None
-            segmentor_list = []
-            if compute_segment:
-                for i in xrange(frame):
-                    print 'segment of frame:', i
-                    segmentor = MySegmentation(orig_path.format(action_name=action, video_name=video, level=level)+frame_format,
-                                    segmented_path.format(action_name=action, video_name=video, level=level)+frame_format,
-                                    features_path.format(action_name=action, video_name=video, level=level),
-                                    annotator,
-                                    None,
-                                    labelledlevelvideo_path.format(action_name=action, video_name=video, level=level),
-                                    optical_flow_path.format(action_name=action, video_name=video, level=level)+frame_format,
-                                    negative_neighbors=n_neg,
-                                    fcn_path=fcn_path.format(action_name=action, video_name=video, level=level)+frame_format)
-                    segmentor.setFeatureType(feature_type)
-                    segmentor_list.append((i, segmentor))
-                    # segmentor_list.append((i, MySegmentation(orig_path.format(d)+frame_format, seg_path.format(d,level)+frame_format, annotator)))
-                # parallelProcess = lambda pair: pair[1].processNewFrame(pair[0]) #pair = (frame_number, segment)
-                from multiprocessing import Pool
-                print 'create pool'
-                pool = Pool()
-                print 'defining function'
-                        # pair[1].processNewFrame(pair[0]) #pair = (frame_number, segment)
-                s = time.time()
-                print 'parallelizing begins', 'Elapsed time:', time.time()-s
-                s = time.time()
-                parallelized_segmentor_list = pool.map(parallelProcess, segmentor_list)
-                segmentor_list = None
-                # for segg in parallelized_segmentor_list:
-                    # segg.processNewFramePar(i+1)
-                print 'Parallelizing DONE', 'Elapsed time: ', time.time()-s
-
-                print 'Merging begins'
-                s = time.time()
-                segmentor = parallelized_segmentor_list[0]
-                for i in xrange(1, len(parallelized_segmentor_list)):
-                    segmentor.merge(parallelized_segmentor_list[i])
-                print 'Elapsed time: ', time.time()-s
-                # for i in xrange(frame):
-                    # logger.log('frame {0}'.format(i+1))
-                    # segmentor.processNewFrame()
-                segmentor.doneProcessing()
-                logger.log("Total number of supervoxels: {0}".format(len(segmentor.supervoxels)))
-                logger.log('*** Pickling ***')
-                s = time.time()
-                logger.log('Elapsed time: {0}'.format(time.time()-s))
-                pickle.dump(segmentor, open(pickle_path.format(action_name=action, video_name=video, level=level), 'w'))
-                s = time.time()
-                logger.log('Piclking action:`{action}`, video:`{video}` ...'.format(action=action, video=video))
-                logger.log('*** Collecting features / Creating databases ***')
-            else: # Don't compute segments
-                logger.log('No need to compute segments')
-                logger.log('loading segments')
-                segmentor = pickle.load(open(pickle_path.format(action_name=action, video_name=video, level=level), 'r'))
-                segmentor.__class__ = MySegmentation
-
-            db_path = database_path.format(action_name=action, video_name=video, level=level)
-            database = DB(db_path)
-            features = segmentor.getFeatures(neighbor_num,feature_type=feature_type)
-            for name, data in features.iteritems():
-                database.save(data, name)
-            database.close()
-            logger.log("Segment {0} Done!\n".format(action))
-    write_db_list(db_settings, logger)
-    logger.log('done!')
-
 
 def createJHMDB(db_settings, logger):
     frame_format = db_settings['frame_format']
@@ -139,7 +35,6 @@ def createJHMDB(db_settings, logger):
     labelledlevelvideo_path = db_settings['voxellabelledlevelvideo_path']
     optical_flow_path = db_settings['optical_flow_path']
     fcn_path = db_settings['fcn_path']
-    output_path = db_settings['output_path']
     #TODO: maybe we should save them segarately
     #TODO: write a merge segment function?
     logger.log('*** Segment parsing ***')
@@ -163,14 +58,12 @@ def createJHMDB(db_settings, logger):
                             labelledlevelvideo_path.format(action_name=action, video_name=video, level=level),
                             optical_flow_path.format(action_name=action, video_name=video, level=level)+frame_format,
                             negative_neighbors=n_neg,
-                            fcn_path=fcn_path.format(action_name=action, video_name=video, level=level)+frame_format,
-                            output_path=output_path)
+                            fcn_path=fcn_path.format(action_name=action, video_name=video, level=level)+frame_format)
             segmentor.setFeatureType(feature_type)
             # segmentor_list = []
             # for i in xrange(frames_per_vidoe):
                 # segmentor_list.append((i, MySegmentation(orig_path.format(d)+frame_format, seg_path.format(d,level)+frame_format, annotator)))
             # parallelized_segmentor_list = pool.map(parallelProcess, segmentor_list)
-
             for i in xrange(frame):
                 logger.log('frame {0}'.format(i+1))
                 segmentor.processNewFrame()
@@ -186,19 +79,17 @@ def createJHMDB(db_settings, logger):
             db_path = database_path.format(action_name=action, video_name=video, level=level)
             database = DB(db_path)
             features = segmentor.getFeatures(neighbor_num,feature_type=feature_type)
-            #if type(feature_type) is list:
-            #    feat_size = features[-1]
-            #    features = features[0]
-            #    for _id, feature_type_i in enumerate(feature_type):
-            #        idx1 = sum(feat_size[:_id])
-            #        idx2 = sum(feat_size[:(_id + 1)])
-            #        for name, data in features.iteritems():
-            #            database.save(data[..., idx1:idx2], feature_type_i.name + '_' + name)
-            #else:
-            #    for name, data in features.iteritems():
-            #        database.save(data, name)
-            for name, data in features.iteritems():
-                database.save(data, name)
+            if type(feature_type) is list:
+                feat_size = features[-1]
+                features = features[0]
+                for _id, feature_type_i in enumerate(feature_type):
+                    idx1 = sum(feat_size[:_id])
+                    idx2 = sum(feat_size[:(_id + 1)])
+                    for name, data in features.iteritems():
+                        database.save(data[..., idx1:idx2], feature_type_i.name + '_' + name)
+            else:
+                for name, data in features.iteritems():
+                    database.save(data, name)
             database.close()
             logger.log("Segment {0} Done!\n".format(action))
     write_db_list(db_settings, logger)

@@ -20,7 +20,7 @@ class FeatureType(Enum):
     #DEEP = 3
 
 class Segmentation(object):
-    def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', annotator=None, segment=None, labelledlevelvideo_path='', optical_flow_path='',negative_neighbors=None, fcn_path=''):
+    def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', annotator=None, segment=None, labelledlevelvideo_path='', optical_flow_path='',negative_neighbors=None, fcn_path='', output_path=''):
         if segment is not None:
             print 'SEGMENT is not None'
             attrs = [a for a in dir(segment) if not a.startswith('__') and not callable(getattr(segment,a))]
@@ -48,6 +48,7 @@ class Segmentation(object):
         self.supervoxels_list = None # list of all supervoxels. This attribute is set in donePrecessing method
         self.annotator = annotator #an object of the class of Annotator
         self.in_process = False
+        self.output_path = output_path
 
     #TODO: implement this for faster pickleing
 #    def __reduce__(self, path):
@@ -66,7 +67,7 @@ class Segmentation(object):
         for k in segment.frame_to_voxels.keys():
             assert k not in mykeys, 'there is a conflict in frames'
         self.frame_to_voxels.update(segment.frame_to_voxels)
-        
+
 
         #TODO merging
 
@@ -220,7 +221,7 @@ class Segmentation(object):
         self.createVoxelLabelledlevelvideoData()
 
     def createVoxelLabelledlevelvideoData(self):
-        #TODO: 
+        #TODO:
         self.current_frame = 22
         print "[Segmentation::VoxelLabelledlevelvideoData]  self.current_frame = {}".format(self.current_frame)
         segmented_path = self.segmented_path.format(self.current_frame-1)
@@ -260,18 +261,18 @@ class Segmentation(object):
 
 class MySegmentation(Segmentation):
     def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', features_path = './features.txt', annotator=None, segment=None, labelledlevelvideo_path='', optical_flow_path='', negative_neighbors=None,\
-            fcn_path=''):
+            fcn_path='', output_path=''):
         print fcn_path
         if  segment is None:
             #print original_path, segmented_path, len(annotator.labels)
             print original_path, segmented_path, labelledlevelvideo_path
-            super(MySegmentation, self).__init__(original_path, segmented_path, annotator, None, labelledlevelvideo_path, optical_flow_path, negative_neighbors, fcn_path)
+            super(MySegmentation, self).__init__(original_path, segmented_path, annotator, None, labelledlevelvideo_path, optical_flow_path, negative_neighbors, fcn_path, output_path=output_path)
         else:
-            super(Segmentation, self).__init__(segment.original_path, segmented_path, segment, labelledlevelvideo_path, optical_flow_path, negative_neighbors, fcn_path)
+            super(Segmentation, self).__init__(segment.original_path, segmented_path, segment, labelledlevelvideo_path, optical_flow_path, negative_neighbors, fcn_path, output_path=output_path)
         self.fcn_path = fcn_path
-
         print 'FCN Path============================> ' + self.fcn_path
         self.features_path = features_path
+        self.output_path = output_path
         if negative_neighbors is None:
             self.negative_neighbors = 1
         else:
@@ -279,6 +280,20 @@ class MySegmentation(Segmentation):
 
     def getNearestSupervoxelsOf(self, supervoxel, threshold=30):
         pass
+
+    def getKNearestSupervoxelsOf_indices(self, supervoxel, k=6):
+        '''
+        :param arg1: supervoxel
+        :param arg2: number of neighbors
+        :type arg1: Supervoxel()
+        :type arg2: int
+        :return: set of neighbors of supervoxel
+        :rtype: set()
+        '''
+        if not hasattr(self, 'cKDTree'):
+            self.__cKDTree__ = cKDTree(np.array([sv.center() for sv in self.supervoxels_list]))
+        nearestNeighbors = self.__cKDTree__.query(np.array(supervoxel.center()), k+1)[1] # Added one to the neighbors because the target itself is included
+        return  nearestNeighbors[1:]
 
     def getKNearestSupervoxelsOf(self, supervoxel, k=6):
         '''
@@ -389,11 +404,10 @@ class MySegmentation(Segmentation):
         for i in range(k):
             data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
         for i, sv in enumerate(self.supervoxels_list):
-            multiplier = 9#max((negative_numbers/k + 3), 4)
-            # neighbors_ = self.getKNearestSupervoxelsOf(sv, multiplier*negative_numbers)
-            neighbors_ = self.getKNearestSupervoxelsOf(sv, 500)
+            multiplier = max((negative_numbers/k + 3), 10)
+            neighbors_ = self.getKNearestSupervoxelsOf(sv, multiplier*k)
             neighbors = set(neighbors_[:k])
-            neighbors_ = set(neighbors_[50:])
+            neighbors_ = set(neighbors_[4*k:])
             #print 'neighbors', len(neighbors)
             #neighbors_.difference_update(neighbors) #All other supervoxels except Target and its neighbors
             #TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
@@ -423,7 +437,7 @@ class MySegmentation(Segmentation):
         print "[Segmentation::_extract_fcn] -- data['target'] shape:", data['target'].shape
         return data
 
-    def _extract_fcn_hof(self, k, negative_numbers):
+    def _extract_fcn_hof_new(self, k, negative_numbers):
         assert k >= 2, 'K < 2: At least 2 neighbors is needed'
         supervoxels = set(self.supervoxels_list)
         feature_len = len(self.supervoxels_list[0].getFCN() + self.supervoxels_list[0].getOpticalFlow())
@@ -448,6 +462,54 @@ class MySegmentation(Segmentation):
             #when everything is done we put back neighbors to the set
             #supervoxels.update(neighbors)
             #supervoxels.add(sv)
+            features_names = ['FCN', 'HOF']
+            getFeatureFunc = {'FCN': lambda supvo: self._scale(supvo.getFCN()), 'HOF': lambda supvo: supvo.getOpticalFlow()}
+            for feat in features:
+                idx = i*negative_numbers
+                data['{}_target'.format(feat)][idx][...] = getFeatureFunc[feat](sv)#self._scale(sv.getFCN()) + sv.getOpticalFlow()
+                for j, nei in enumerate(neighbors):
+                    data['{}_neighbor{}'.format(feat, j)][idx][...] = featFeatureFunc[feat](nei)#self._scale(nei.getFCN()) + nei.getOpticalFlow()
+                data['{}_negative'.format(feat)][idx][...] = featFeatureFunc[feat](negatives[0])#self._scale(negatives[0].getFCN()) 0+ negatives[0].getOpticalFlow()
+                for neg in xrange(1, negative_numbers):
+                    new_idx = idx+neg
+                    data['{}_target'.format(feat)][new_idx][...] = data['{}_target'.format(feat)][idx][...]
+                    for j, nei in enumerate(neighbors):
+                        data['{}_neighbor{}'.format(feat, j)][new_idx][...] = data['{}_neighbor{}'.format(feat,j)][idx][...]
+                    data['{}_negative'.format(feat)][new_idx][...] = featFeatureFunc[feat](negatives[neg])#self._scale(negatives[neg].getFCN()) + negatives[neg].getOpticalFlow()
+
+        print "[Segmentation::_extract_fcn] -- data['target'] shape:", data['target'].shape
+        #return [data, [len(self.supervoxels_list[0].getFCN()), len(self.supervoxels_list[0].getOpticalFlow())]]
+        return data
+
+    def _extract_fcn_hof(self, k, negative_numbers):
+        assert k >= 2, 'K < 2: At least 2 neighbors is needed'
+        supervoxels = set(self.supervoxels_list)
+        feature_len = len(self.supervoxels_list[0].getFCN() + self.supervoxels_list[0].getOpticalFlow())
+        n = len(supervoxels) * negative_numbers
+        database_negative_indices = np.zeros((len(supervoxels), negative_numbers))
+        database_neighbor_indices = np.zeros((len(supervoxels), k))
+        data = {'target':self.dummyData(n, feature_len), 'negative':self.dummyData(n, feature_len)}
+        for i in range(k):
+            data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
+        for i, sv in enumerate(self.supervoxels_list):
+            multiplier = max((negative_numbers/k + 3), 10)
+            neighbors_all = self.getKNearestSupervoxelsOf_indices(sv, multiplier*k)
+            neighbors = neighbors_all[:k]
+            neighbors_negatives = neighbors_all[4*k:]
+            #print 'neighbors', len(neighbors)
+            #neighbors_.difference_update(neighbors) #All other supervoxels except Target and its neighbors
+            #TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
+            # Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
+            #negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
+            negatives = random.sample(neighbors_negatives, negative_numbers) #Sample one supervoxel as negative
+            database_negative_indices[i][...] = np.array(negatives)
+            database_neighbor_indices[i][...] = np.array(neighbors)
+            #neighbors.remove(sv)
+            negatives = [self.supervoxels_list[neg_i] for neg_i in negatives]
+            neighbors = [self.supervoxels_list[nei_i] for nei_i in neighbors]
+            #when everything is done we put back neighbors to the set
+            #supervoxels.update(neighbors)
+            #supervoxels.add(sv)
             idx = i*negative_numbers
             data['target'][idx][...] = self._scale(sv.getFCN()) + sv.getOpticalFlow()
             for j, nei in enumerate(neighbors):
@@ -460,8 +522,10 @@ class MySegmentation(Segmentation):
                     data['neighbor{0}'.format(j)][new_idx][...] = data['neighbor{0}'.format(j)][idx][...]
                 data['negative'][new_idx][...] = self._scale(negatives[neg].getFCN()) + negatives[neg].getOpticalFlow()
 
-        print "[Segmentation::_extract_fcn_hof] -- first one feats:", data['target'][0][1:10]
-        print "[Segmentation::_extract_fcn_hof] -- data['target'] shape:", data['target'].shape
+        from scipy.io import savemat
+        savemat(self.output_path, {'database_negative_indices':database_negative_indices, 'database_neighbor_indices':database_neighbor_indices})
+        print "[Segmentation::_extract_fcn] -- data['target'] shape:", data['target'].shape
+        #return [data, [len(self.supervoxels_list[0].getFCN()), len(self.supervoxels_list[0].getOpticalFlow())]]
         return data
 
     def _extract_clr_hof(self, k, negative_numbers):
@@ -747,6 +811,8 @@ class MySegmentation(Segmentation):
         '''
         negative_neighbors = self.negative_neighbors
         assert k >= 2, 'K < 2: At least 2 neighbors is needed'
+        if len(feature_type) == 1:
+            feature_type = feature_type[0]
         if feature_type == FeatureType.COLOR_HISTOGRAM:
             return self._extract_color_histogram_new(k, negative_neighbors)
         elif feature_type == FeatureType.MBH:
