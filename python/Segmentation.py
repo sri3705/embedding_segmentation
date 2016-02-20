@@ -22,7 +22,7 @@ class FeatureType(Enum):
 class Segmentation(object):
 
 
-    def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', annotator=None, segment=None, labelledlevelvideo_path='', optical_flow_path='',negative_neighbors=None, fcn_path=''):
+    def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', annotator=None, segment=None, labelledlevelvideo_path='', optical_flow_path='',negative_neighbors=None, fcn_path='', output_path=''):
         if segment is not None:
             print 'SEGMENT is not None'
             attrs = [a for a in dir(segment) if not a.startswith('__') and not callable(getattr(segment,a))]
@@ -50,6 +50,7 @@ class Segmentation(object):
         self.supervoxels_list = None # list of all supervoxels. This attribute is set in donePrecessing method
         self.annotator = annotator #an object of the class of Annotator
         self.in_process = False
+        self.output_path = output_path
 
     #TODO: implement this for faster pickleing
 #    def __reduce__(self, path):
@@ -234,17 +235,18 @@ class Segmentation(object):
 
 class MySegmentation(Segmentation):
     def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', features_path = './features.txt', annotator=None, segment=None, labelledlevelvideo_path='', optical_flow_path='', negative_neighbors=None,\
-            fcn_path=''):
+            fcn_path='', output_path=''):
         print fcn_path
         if  segment is None:
             #print original_path, segmented_path, len(annotator.labels)
             print original_path, segmented_path, labelledlevelvideo_path
-            super(MySegmentation, self).__init__(original_path, segmented_path, annotator, None, labelledlevelvideo_path, optical_flow_path, negative_neighbors, fcn_path)
+            super(MySegmentation, self).__init__(original_path, segmented_path, annotator, None, labelledlevelvideo_path, optical_flow_path, negative_neighbors, fcn_path, output_path=output_path)
         else:
-            super(Segmentation, self).__init__(segment.original_path, segmented_path, segment, labelledlevelvideo_path, optical_flow_path, negative_neighbors, fcn_path)
+            super(Segmentation, self).__init__(segment.original_path, segmented_path, segment, labelledlevelvideo_path, optical_flow_path, negative_neighbors, fcn_path, output_path=output_path)
         self.fcn_path = fcn_path
         print 'FCN Path============================> ' + self.fcn_path
         self.features_path = features_path
+        self.output_path = output_path
         if negative_neighbors is None:
             self.negative_neighbors = 1
         else:
@@ -252,6 +254,20 @@ class MySegmentation(Segmentation):
 
     def getNearestSupervoxelsOf(self, supervoxel, threshold=30):
         pass
+
+    def getKNearestSupervoxelsOf_indices(self, supervoxel, k=6):
+        '''
+        :param arg1: supervoxel
+        :param arg2: number of neighbors
+        :type arg1: Supervoxel()
+        :type arg2: int
+        :return: set of neighbors of supervoxel
+        :rtype: set()
+        '''
+        if not hasattr(self, 'cKDTree'):
+            self.__cKDTree__ = cKDTree(np.array([sv.center() for sv in self.supervoxels_list]))
+        nearestNeighbors = self.__cKDTree__.query(np.array(supervoxel.center()), k+1)[1] # Added one to the neighbors because the target itself is included
+        return  nearestNeighbors[1:]
 
     def getKNearestSupervoxelsOf(self, supervoxel, k=6):
         '''
@@ -444,23 +460,27 @@ class MySegmentation(Segmentation):
         supervoxels = set(self.supervoxels_list)
         feature_len = len(self.supervoxels_list[0].getFCN() + self.supervoxels_list[0].getOpticalFlow())
         n = len(supervoxels) * negative_numbers
+        database_negative_indices = np.zeros((len(supervoxels), negative_numbers))
+        database_neighbor_indices = np.zeros((len(supervoxels), k))
         data = {'target':self.dummyData(n, feature_len), 'negative':self.dummyData(n, feature_len)}
         for i in range(k):
             data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
         for i, sv in enumerate(self.supervoxels_list):
             multiplier = max((negative_numbers/k + 3), 10)
-            neighbors_ = self.getKNearestSupervoxelsOf(sv, multiplier*k)
-            neighbors = set(neighbors_[:k])
-            neighbors_ = set(neighbors_[4*k:])
+            neighbors_all = self.getKNearestSupervoxelsOf_indices(sv, multiplier*k)
+            neighbors = neighbors_all[:k]
+            neighbors_negatives = neighbors_all[4*k:]
             #print 'neighbors', len(neighbors)
             #neighbors_.difference_update(neighbors) #All other supervoxels except Target and its neighbors
             #TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
             # Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
             #negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
-            negatives = random.sample(neighbors_, negative_numbers) #Sample one supervoxel as negative
-
+            negatives = random.sample(neighbors_negatives, negative_numbers) #Sample one supervoxel as negative
+            database_negative_indices[i][...] = np.array(negatives)
+            database_neighbor_indices[i][...] = np.array(neighbors)
             #neighbors.remove(sv)
-
+            negatives = [self.supervoxels_list[neg_i] for neg_i in negatives]
+            neighbors = [self.supervoxels_list[nei_i] for nei_i in neighbors]
             #when everything is done we put back neighbors to the set
             #supervoxels.update(neighbors)
             #supervoxels.add(sv)
@@ -476,6 +496,8 @@ class MySegmentation(Segmentation):
                     data['neighbor{0}'.format(j)][new_idx][...] = data['neighbor{0}'.format(j)][idx][...]
                 data['negative'][new_idx][...] = self._scale(negatives[neg].getFCN()) + negatives[neg].getOpticalFlow()
 
+        from scipy.io import savemat
+        savemat(self.output_path, {'database_negative_indices':database_negative_indices, 'database_neighbor_indices':database_neighbor_indices})
         print "[Segmentation::_extract_fcn] -- data['target'] shape:", data['target'].shape
         #return [data, [len(self.supervoxels_list[0].getFCN()), len(self.supervoxels_list[0].getOpticalFlow())]]
         return data

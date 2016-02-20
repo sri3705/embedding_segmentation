@@ -35,6 +35,7 @@ def createJHMDB(db_settings, logger):
     labelledlevelvideo_path = db_settings['voxellabelledlevelvideo_path']
     optical_flow_path = db_settings['optical_flow_path']
     fcn_path = db_settings['fcn_path']
+    output_path = db_settings['output_path']
     #TODO: maybe we should save them segarately
     #TODO: write a merge segment function?
     logger.log('*** Segment parsing ***')
@@ -58,7 +59,8 @@ def createJHMDB(db_settings, logger):
                             labelledlevelvideo_path.format(action_name=action, video_name=video, level=level),
                             optical_flow_path.format(action_name=action, video_name=video, level=level)+frame_format,
                             negative_neighbors=n_neg,
-                            fcn_path=fcn_path.format(action_name=action, video_name=video, level=level)+frame_format)
+                            fcn_path=fcn_path.format(action_name=action, video_name=video, level=level)+frame_format,
+                            output_path=output_path)
             segmentor.setFeatureType(feature_type)
             # segmentor_list = []
             # for i in xrange(frames_per_vidoe):

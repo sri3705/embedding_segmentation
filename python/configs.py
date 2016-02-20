@@ -58,7 +58,7 @@ class Config:
             'test_iter':    	1,
             'snapshot':    	2000,
             'lr_policy':     	"step",
-            'stepsize':    	1000,
+            'stepsize':    	800,
             'snapshot_prefix':    self.experiments_path+'/snapshot/',
             'net':    		self.model['test_prototxt_path'],
             '_train_net':    	self.model['model_prototxt_path'],
@@ -105,7 +105,7 @@ class Config:
             'fcn_path':                 '/cs/vml2/smuralid/projects/eccv16/python/preprocessing/fcn/Test/{action_name}/',
             #'features_path':     '/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/features.txt',
             'features_path':     	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/hist.mat',
-            'output_path':    		'/cs/vml2/smuralid/projects/eccv16/output/{action_name}/{video_name}/{level:02d}/{experiment_number}/', #+frame_format
+            'output_path':    		self.experiments_path + 'indices.mat',#+frame_format
             # 'database_path':    	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/databases/{action_name}/{video_name}/{level:02d}.h5',
             'database_path':    	'/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/{level:02d}.h5',
             # 'pickle_path':    		'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/pickle/{action_name}/{video_name}/{level:02d}.p',
