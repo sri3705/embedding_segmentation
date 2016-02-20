@@ -20,8 +20,6 @@ class FeatureType(Enum):
     #DEEP = 3
 
 class Segmentation(object):
-
-
     def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', annotator=None, segment=None, labelledlevelvideo_path='', optical_flow_path='',negative_neighbors=None, fcn_path=''):
         if segment is not None:
             print 'SEGMENT is not None'
@@ -54,6 +52,23 @@ class Segmentation(object):
     #TODO: implement this for faster pickleing
 #    def __reduce__(self, path):
 #        pass
+
+    def merge(self, segment):
+        #Merge -> supervoxels
+        for sv_ID, sv in segment.supervoxels.iteritems():
+            if sv_ID in self.supervoxels:
+                self.supervoxels[sv_ID].merge(sv)
+            else:
+                self.supervoxels[sv_ID] = sv
+        #Merge -> frame_to_voxels
+        #frames are different so I can simply add them to the current segment
+        mykeys = set(self.frame_to_voxels.keys())
+        for k in segment.frame_to_voxels.keys():
+            assert k not in mykeys, 'there is a conflict in frames'
+        self.frame_to_voxels.update(segment.frame_to_voxels)
+        
+
+        #TODO merging
 
     def __findLowestThresholdIndex(self,threshold):
         #if self.in_process:
@@ -137,6 +152,14 @@ class Segmentation(object):
         #            raise
 
 
+    def processNewFramePar(self, frame):
+        orig_path = self.original_path.format(frame)
+        seg_path = self.segmented_path.format(frame)
+        optical_flow_path = self.optical_flow_path.format(frame)
+        fcn_path = self.fcn_path.format(frame).replace('.ppm', '.npz')
+        self.addSupervoxels(orig_path, seg_path, frame, optical_flow_path, fcn_path)
+        self.current_frame = frame
+
     def processNewFrame(self):
         orig_path = self.original_path.format(self.current_frame)
         seg_path = self.segmented_path.format(self.current_frame)
@@ -197,6 +220,9 @@ class Segmentation(object):
         self.createVoxelLabelledlevelvideoData()
 
     def createVoxelLabelledlevelvideoData(self):
+        #TODO: 
+        self.current_frame = 22
+        print "[Segmentation::VoxelLabelledlevelvideoData]  self.current_frame = {}".format(self.current_frame)
         segmented_path = self.segmented_path.format(self.current_frame-1)
         orig_img = MyImage(segmented_path)
         width, height = orig_img.size
@@ -363,10 +389,11 @@ class MySegmentation(Segmentation):
         for i in range(k):
             data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
         for i, sv in enumerate(self.supervoxels_list):
-            multiplier = max((negative_numbers/k + 3), 10)
-            neighbors_ = self.getKNearestSupervoxelsOf(sv, multiplier*k)
+            multiplier = 9#max((negative_numbers/k + 3), 4)
+            # neighbors_ = self.getKNearestSupervoxelsOf(sv, multiplier*negative_numbers)
+            neighbors_ = self.getKNearestSupervoxelsOf(sv, 500)
             neighbors = set(neighbors_[:k])
-            neighbors_ = set(neighbors_[4*k:])
+            neighbors_ = set(neighbors_[50:])
             #print 'neighbors', len(neighbors)
             #neighbors_.difference_update(neighbors) #All other supervoxels except Target and its neighbors
             #TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
@@ -433,7 +460,8 @@ class MySegmentation(Segmentation):
                     data['neighbor{0}'.format(j)][new_idx][...] = data['neighbor{0}'.format(j)][idx][...]
                 data['negative'][new_idx][...] = self._scale(negatives[neg].getFCN()) + negatives[neg].getOpticalFlow()
 
-        print "[Segmentation::_extract_fcn] -- data['target'] shape:", data['target'].shape
+        print "[Segmentation::_extract_fcn_hof] -- first one feats:", data['target'][0][1:10]
+        print "[Segmentation::_extract_fcn_hof] -- data['target'] shape:", data['target'].shape
         return data
 
     def _extract_clr_hof(self, k, negative_numbers):
@@ -707,7 +735,7 @@ class MySegmentation(Segmentation):
         self.data_corso = data
         return data
 
-    def getFeatures(self, k, feature_type=FeatureType.COLOR_HISTOGRAM):
+    def getFeatures(self, k, feature_type):
         '''
         :param arg1: number of nieghbors (k)
         :type arg1: int
@@ -797,10 +825,10 @@ def doDataCollection(**kargs):
     pass
 
 
-import cPickle as pickle
-from Annotation import JHMDBAnnotator as JA
 
 def main():
+    import cPickle as pickle
+    from Annotation import JHMDBAnnotator as JA
     frame_format = '{0:05d}.ppm'
     seg_path = '/cs/vml3/mkhodaba/cvpr16/dataset/b{0}/seg/{1:02d}/' #+ frame_format
     orig_path = '/cs/vml3/mkhodaba/cvpr16/dataset/b{0}/' #+ frame_format

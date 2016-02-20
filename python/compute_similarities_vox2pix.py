@@ -84,11 +84,12 @@ def buildVoxel2PixelSimilarities(config_id):
     db_settings = conf.db_settings
     #Load similarities
     mat = loadmat(conf.experiments_path+'/similarities.mat')
+    # mat = loadmat(conf.experiments_path+'/sim.mat')
     voxelSimilarities = mat['similarities']
     #Load superpixel information (1-based)
     # mat = loadmat('/cs/vml3/mkhodaba/cvpr16/Graph_construction/Features/vw_commercial_vidinfo.mat')
     video_name = db_settings['action_name'][0]
-    mat = loadmat('/cs/vml2/mkhodaba/cvpr16/VSB100/VideoProcessingTemp/{}/vidinfo.mat'.format(video_name))
+    mat = loadmat('/cs/vml2/mkhodaba/cvpr16/VSB100/VideoProcessingTemp/{0}/vidinfo_{1:02d}.mat'.format(video_name, conf.db_settings['level']))
     mapped = mat['mapped']
     numberofsuperpixelsperframe = mat['numberofsuperpixelsperframe']
     total_superpixels_num = np.sum(numberofsuperpixelsperframe)
@@ -138,8 +139,8 @@ def buildVoxel2PixelSimilarities(config_id):
     for i in xrange(total_superpixels_num):
         for j in xrange(total_superpixels_num):
             similarities[i][j] = voxelSimilarities[pixel_to_voxel[i]][pixel_to_voxel[j]]
-        if i % 100 == 0:
-            print i
+        if i % 1000 == 0:
+            print i, '/', total_superpixels_num
     # savemat(conf.experiments_path+'/similarities_superpixels.mat', {'similarities':similarities})
     with h5py.File(conf.experiments_path+'/similarities_superpixels.h','w') as hf:
         similarities = np.array(similarities)
