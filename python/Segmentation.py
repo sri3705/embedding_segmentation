@@ -20,13 +20,7 @@ class FeatureType(Enum):
     #DEEP = 3
 
 class Segmentation(object):
-<<<<<<< HEAD
-
-
     def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', annotator=None, segment=None, labelledlevelvideo_path='', optical_flow_path='',negative_neighbors=None, fcn_path='', output_path=''):
-=======
-    def __init__(self, original_path='./orig/{0:05d}.ppm', segmented_path='./seg/{0:05d}.ppm', annotator=None, segment=None, labelledlevelvideo_path='', optical_flow_path='',negative_neighbors=None, fcn_path=''):
->>>>>>> upstream/master
         if segment is not None:
             print 'SEGMENT is not None'
             attrs = [a for a in dir(segment) if not a.startswith('__') and not callable(getattr(segment,a))]
