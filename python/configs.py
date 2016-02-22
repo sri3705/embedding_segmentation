@@ -6,8 +6,8 @@ from Segmentation import *
 
 class Config:
     def __init__(self, experiment_number=None, comment=None):
-        self.experiments_root = '/cs/vml2/smuralid/projects/eccv16/experiments/'
-        self.visualization_path = '/cs/vml2/smuralid/projects/embedding_segmentation/python/Visualization/'
+        self.experiments_root = '/cs/vml2/mkhodaba/cvpr16/expriments/'
+        # self.visualization_path = '/cs/vml2/smuralid/projects/embedding_segmentation/python/Visualization/'
         self.comment = comment
         if not experiment_number:
             self.__create_config__()
@@ -22,6 +22,7 @@ class Config:
                 vals.append(int(x.split('-')[0]))
 
         self.experiment_number = max(vals)+1
+        print 'Experiment number is:', self.experiment_number
         if self.comment:
             self.experiments_path = self.experiments_root+'/{0}-{1}/'.format(self.experiment_number,self.comment)
         else:
@@ -33,7 +34,7 @@ class Config:
         # self.db = 'vsb100' # self.db = 'jhmdb' or 'vsb100'
         self.db = 'jhmdb'
         self.model = {
-            'batch_size':    	32,
+            'batch_size':    	64,
             'number_of_neighbors':    8, #number of neighbors around the target superpixel
             'number_of_negatives':  8,
             'inner_product_output':    128, #2*(3*256+192),
@@ -107,11 +108,10 @@ class Config:
             'features_path':     	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/hist.mat',
             'output_path':    		self.experiments_path + 'indices.mat',#+frame_format
             # 'database_path':    	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/databases/{action_name}/{video_name}/{level:02d}.h5',
-            'database_path':    	'/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/{level:02d}.h5',
-            # 'pickle_path':    		'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/pickle/{action_name}/{video_name}/{level:02d}.p',
-            'pickle_path':    		'/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/{level:02d}.p',
-            'pixellabelledlevelvideo_path':    		'/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/pixellabelledlevelvideo_{level:02d}.mat',
-            'voxellabelledlevelvideo_path':         '/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/voxellabelledlevelvideo_{level:02d}.mat',
+            'pickle_path':            '/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/{level:02d}.p',
+            'database_path': '/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/{level:02d}.h5',
+            'pixellabelledlevelvideo_path':   '/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/pixellabelledlevelvideo_{level:02d}.mat',
+            'voxellabelledlevelvideo_path':   '/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/voxellabelledlevelvideo_{level:02d}.mat',
             'test_database_list_path':    self.experiments_path+'/database_list_{name}.txt',
             'database_list_path':    	self.model['database_list_path'],
             'feature_type':    		self.model['feature_type'],

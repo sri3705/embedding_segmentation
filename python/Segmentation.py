@@ -492,24 +492,25 @@ class MySegmentation(Segmentation):
         for i in range(k):
             data['neighbor{0}'.format(i)] = self.dummyData(n, feature_len)
         for i, sv in enumerate(self.supervoxels_list):
-            multiplier = max((negative_numbers/k + 3), 10)
+            multiplier = max((negative_numbers/k + 3), 13)
             neighbors_all = self.getKNearestSupervoxelsOf_indices(sv, multiplier*k)
             neighbors = neighbors_all[:k]
             neighbors_negatives = neighbors_all[4*k:]
-            #print 'neighbors', len(neighbors)
-            #neighbors_.difference_update(neighbors) #All other supervoxels except Target and its neighbors
             #TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
             # Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
-            #negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
-            negatives = random.sample(neighbors_negatives, negative_numbers) #Sample one supervoxel as negative
+            # negatives = random.sample(neighbors_negatives, negative_numbers) #Sample one supervoxel as negative
+            negatives = neighbors_negatives[:k] #
+            # negatives = neighbors_negatives[-negative_numbers:] #
+            # negatives = neighbors_negatives[-4*negative_numbers:-3*negative_numbers] #
+            # negatives = neighbors_negatives[:k] #
+            # negatives = neighbors_all[10*k:11*k] #
+            # negatives = neighbors_all[2*k:3*k] #
+            # negatives = neighbors_all[k:2*k] #
+
             database_negative_indices[i][...] = np.array(negatives)
             database_neighbor_indices[i][...] = np.array(neighbors)
-            #neighbors.remove(sv)
             negatives = [self.supervoxels_list[neg_i] for neg_i in negatives]
             neighbors = [self.supervoxels_list[nei_i] for nei_i in neighbors]
-            #when everything is done we put back neighbors to the set
-            #supervoxels.update(neighbors)
-            #supervoxels.add(sv)
             idx = i*negative_numbers
             data['target'][idx][...] = self._scale(sv.getFCN()) + sv.getOpticalFlow()
             for j, nei in enumerate(neighbors):
@@ -519,12 +520,12 @@ class MySegmentation(Segmentation):
                 new_idx = idx+neg
                 data['target'][new_idx][...] = data['target'][idx][...]
                 for j, nei in enumerate(neighbors):
-                    data['neighbor{0}'.format(j)][new_idx][...] = data['neighbor{0}'.format(j)][idx][...]
-                data['negative'][new_idx][...] = self._scale(negatives[neg].getFCN()) + negatives[neg].getOpticalFlow()
-
+                    data['neighbor{0}'.format(j)][new_idx][...] = data['neighbor{0}'.format(j)][idx][...] 
+                data['negative'][new_idx][...] = self._scale(negatives[neg].getFCN()) + negatives[neg].getOpticalFlow() 
         from scipy.io import savemat
+        print self.output_path 
         savemat(self.output_path, {'database_negative_indices':database_negative_indices, 'database_neighbor_indices':database_neighbor_indices})
-        print "[Segmentation::_extract_fcn] -- data['target'] shape:", data['target'].shape
+        print "[Segmentation::_extract_fcn_hof] -- data['target'] shape:", data['target'].shape
         #return [data, [len(self.supervoxels_list[0].getFCN()), len(self.supervoxels_list[0].getOpticalFlow())]]
         return data
 

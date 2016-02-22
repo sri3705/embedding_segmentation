@@ -41,6 +41,8 @@ def createJHMDBParallel(db_settings, logger):
     feature_type = db_settings['feature_type']
     labelledlevelvideo_path = db_settings['voxellabelledlevelvideo_path']
     optical_flow_path = db_settings['optical_flow_path']
+    output_path = db_settings['output_path']
+    print 'output_path is:',output_path 
     compute_segment = db_settings['compute_segment']
     #TODO: maybe we should save them segarately
     #TODO: write a merge segment function?
@@ -66,7 +68,8 @@ def createJHMDBParallel(db_settings, logger):
                                     labelledlevelvideo_path.format(action_name=action, video_name=video, level=level),
                                     optical_flow_path.format(action_name=action, video_name=video, level=level)+frame_format,
                                     negative_neighbors=n_neg,
-                                    fcn_path=fcn_path.format(action_name=action, video_name=video, level=level)+frame_format)
+                                    fcn_path=fcn_path.format(action_name=action, video_name=video, level=level)+frame_format,
+                                    output_path=output_path)
                     segmentor.setFeatureType(feature_type)
                     segmentor_list.append((i, segmentor))
                     # segmentor_list.append((i, MySegmentation(orig_path.format(d)+frame_format, seg_path.format(d,level)+frame_format, annotator)))
@@ -107,6 +110,7 @@ def createJHMDBParallel(db_settings, logger):
                 logger.log('No need to compute segments')
                 logger.log('loading segments')
                 segmentor = pickle.load(open(pickle_path.format(action_name=action, video_name=video, level=level), 'r'))
+                segmentor.output_path = output_path
                 segmentor.__class__ = MySegmentation
 
             db_path = database_path.format(action_name=action, video_name=video, level=level)
@@ -140,6 +144,7 @@ def createJHMDB(db_settings, logger):
     optical_flow_path = db_settings['optical_flow_path']
     fcn_path = db_settings['fcn_path']
     output_path = db_settings['output_path']
+    print 'output_path:', output_path
     #TODO: maybe we should save them segarately
     #TODO: write a merge segment function?
     logger.log('*** Segment parsing ***')
