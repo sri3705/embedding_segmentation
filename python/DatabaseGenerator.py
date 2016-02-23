@@ -112,8 +112,10 @@ def createJHMDBParallel(db_settings, logger):
             db_path = database_path.format(action_name=action, video_name=video, level=level)
             database = DB(db_path)
             features = segmentor.getFeatures(neighbor_num,feature_type=feature_type)
+            n_data = features['target'].shape[0]
             for name, data in features.iteritems():
                 database.save(data, name)
+            database.save(np.ones((n_data, db_settings['inner_product_output'])),'data_weights')
             database.close()
             logger.log("Segment {0} Done!\n".format(action))
     write_db_list(db_settings, logger)
@@ -186,6 +188,7 @@ def createJHMDB(db_settings, logger):
             db_path = database_path.format(action_name=action, video_name=video, level=level)
             database = DB(db_path)
             features = segmentor.getFeatures(neighbor_num,feature_type=feature_type)
+            n_data = features.shape[0]
             #if type(feature_type) is list:
             #    feat_size = features[-1]
             #    features = features[0]
@@ -199,6 +202,7 @@ def createJHMDB(db_settings, logger):
             #        database.save(data, name)
             for name, data in features.iteritems():
                 database.save(data, name)
+            database.save(np.ones((n_data)),'data_weights')
             database.close()
             logger.log("Segment {0} Done!\n".format(action))
     write_db_list(db_settings, logger)

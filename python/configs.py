@@ -6,7 +6,7 @@ from Segmentation import *
 
 class Config:
     def __init__(self, experiment_number=None, comment=None):
-        self.experiments_root = '/cs/vml2/smuralid/projects/eccv16/experiments/'
+        self.experiments_root = '/local-scratch/experiments/'
         self.visualization_path = '/cs/vml2/smuralid/projects/embedding_segmentation/python/Visualization/'
         self.comment = comment
         if not experiment_number:
@@ -33,7 +33,7 @@ class Config:
         # self.db = 'vsb100' # self.db = 'jhmdb' or 'vsb100'
         self.db = 'jhmdb'
         self.model = {
-            'batch_size':    	32,
+            'batch_size':    	64,
             'number_of_neighbors':    8, #number of neighbors around the target superpixel
             'number_of_negatives':  8,
             'inner_product_output':    128, #2*(3*256+192),
@@ -54,16 +54,16 @@ class Config:
             'gamma':    	    0.8,
             'power':    	    0.75,
             'display':    	    500,
-            'test_interval':    100000,
+            'test_interval':    1000,
             'test_iter':        1,
             'snapshot':        2000,
             'lr_policy':         "step",
-            'stepsize':        800,
+            'stepsize':        500,
             'snapshot_prefix':    self.experiments_path+'/snapshot/',
             'net':    		self.model['test_prototxt_path'],
             '_train_net':    	self.model['model_prototxt_path'],
             '_test_nets':    	self.model['test_prototxt_path'],
-            'max_iter':    	10000,
+            'max_iter':    	20000,
             '_train_interval':    500,
             '_termination_threshold':0.0004,
             '_solver_prototxt_path':    self.experiments_path+'/solver.prototxt',
@@ -90,7 +90,8 @@ class Config:
             'frame':    		21,
             'frame_format':    		self.frame_format,
             'number_of_negatives':  self.model['number_of_negatives'],
-            'number_of_neighbors':    	self.model['number_of_neighbors'],
+            'number_of_neighbors':  self.model['number_of_neighbors'],
+            'inner_product_output': self.model['inner_product_output'],
             # 'root_path':    		'/cs/vml2/mkhodaba/datasets/JHMDB/puppet_mask/{action_name}/',
             'root_path':    		'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/',
             'orig_path':    		'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/',
@@ -105,9 +106,10 @@ class Config:
             'fcn_path':                 '/cs/vml2/smuralid/projects/eccv16/python/preprocessing/fcn/Test/{action_name}/',
             #'features_path':     '/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/features.txt',
             'features_path':     	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/hist.mat',
-            'output_path':    		self.experiments_path + 'indices.mat',#+frame_format
+            'output_path':          self.experiments_path + 'indices.mat',#+frame_format
+            'segmentation_log_path':self.experiments_path + 'Shared/Benchmark/Segmcfstltifefff/Output/results.txt',
             # 'database_path':    	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/databases/{action_name}/{video_name}/{level:02d}.h5',
-            'database_path':    	'/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/{level:02d}.h5',
+            'database_path':    	self.experiments_path+ '/{level:02d}.h5',
             # 'pickle_path':    		'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/pickle/{action_name}/{video_name}/{level:02d}.p',
             'pickle_path':    		'/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/{level:02d}.p',
             'pixellabelledlevelvideo_path':    		'/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/pixellabelledlevelvideo_{level:02d}.mat',

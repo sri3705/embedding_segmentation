@@ -455,8 +455,8 @@ class MySegmentation(Segmentation):
             #TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
             # Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
             #negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
-            negatives = random.sample(neighbors_, negative_numbers) #Sample one supervoxel as negative
-
+            #negatives = random.sample(neighbors_, negative_numbers) #Sample one supervoxel as negative
+            negatives = neighbors_[:negative_numbers]
             #neighbors.remove(sv)
 
             #when everything is done we put back neighbors to the set
@@ -501,7 +501,8 @@ class MySegmentation(Segmentation):
             #TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
             # Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
             #negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
-            negatives = random.sample(neighbors_negatives, negative_numbers) #Sample one supervoxel as negative
+            #negatives = random.sample(neighbors_negatives, negative_numbers) #Sample one supervoxel as negative
+            negatives = neighbors_negatives[:negative_numbers]
             database_negative_indices[i][...] = np.array(negatives)
             database_neighbor_indices[i][...] = np.array(neighbors)
             #neighbors.remove(sv)

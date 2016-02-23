@@ -36,11 +36,12 @@ class Network:
     	dataLayer = L.HDF5Data(name='dataLayer',
     					source=dataset_path,
     					batch_size=batch_size,
-    					ntop=2+self.number_of_neighbors,
+    					ntop=3+self.number_of_neighbors,
     					include=list([dict(phase=phase)]))# tops-> target, [neighbors], negative
     	#data -> [target, neighbor1, neighbor2, ..., neighbork, negative]
     	self.net.target = dataLayer[0]
-    	self.net.negative = dataLayer[-1]
+    	self.net.negative = dataLayer[-2]
+        self.net.data_weights = dataLayer[-1]
     	for l in range(1, self.number_of_neighbors+1):
     		setattr(self.net, 'neighbor{0}'.format(l-1), dataLayer[l])
 
@@ -133,13 +134,19 @@ class Network:
     							operation=P.Eltwise.SUM, # SUM
     							coeff=list([1,-1])) # target - negative
 
+        self.net.target_negative_diff_weighted = L.Eltwise(self.net.target_negative_diff, self.net.data_weights,
+                                            name='target_negative_diff_weighted', operation=P.Eltwise.PROD)
 
+        self.net.weights = L.Eltwise(self.net.inner_product_target, self.net.inner_product_negative,
+                                    name='similarity',
+                                    operation=P.Eltwise.PROD)
     	#Loss layer
-    	self.net.loss = L.Python(self.net.context_sum, self.net.target_negative_diff,
+        self.net.silence_data =  L.Silence(self.net.weights, ntop=0)
+    	self.net.loss = L.Python(self.net.context_sum, self.net.target_negative_diff_weighted,
     					name='loss',
     					module='my_dot_product_layer',
-    					layer='MyHingLossDotProductLayer')
-
+    					layer='MyHingLossDotProductLayer',
+                        loss_weight=1)
 
 
     def saveNetwork(self, model_prototxt_path):
@@ -171,6 +178,7 @@ def addTestLayers(configs):
       top: "target"
       {0}
       top: "negative"
+      top: "data_weights"
       include {{
         phase: TEST
       }}
