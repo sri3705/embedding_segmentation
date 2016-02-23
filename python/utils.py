@@ -2,19 +2,27 @@ from os import makedirs, listdir
 from os.path import isdir, dirname
 
 def mkdirs(path):
-	dir_path = dirname(path)
-	try:
-		makedirs(dir_path)
-	except Exception as e:	
-		pass
+    dir_path = dirname(path)
+    try:
+        makedirs(dir_path)
+    except Exception as e:    
+        pass
+
+def getNumberOfFiles(path):
+    try:
+        return len([o for o in listdir(path) if o[0] != '.'])
+    except Exception as e:
+        print e
+        print 'Error in getNumberOfFiles'
+        raise    
 
 def getDirs(path):
-	try:
-		return sorted([o for o in listdir(path) if isdir(path+'/'+o) and o[0] != '.'])
-	except Exception as e:
-		print e
-		print 'Error in getDirs'
-		return []
+    try:
+        return sorted([o for o in listdir(path) if isdir(path+'/'+o) and o[0] != '.'])
+    except Exception as e:
+        print e
+        print 'Error in getDirs'
+        return []
 
 def getFuncArgNames(func):
-	return func.func_code.co_varnames[:func.func_code.co_argcount]
+    return func.func_code.co_varnames[:func.func_code.co_argcount]

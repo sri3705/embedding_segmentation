@@ -20,7 +20,7 @@ def refineSimilarities(config_id):
     mat = loadmat(conf.experiments_path+'/similarities_old.mat')
     similarities = mat['similarities']
     similarities = normalizeSimilarities(similarities)
-    fade_multiplier = 0.7
+    fade_multiplier = 0 #0.7
     refined_similarities = np.ones(similarities.shape)*fade_multiplier
     # refined_similarities = np.ones(similarities.shape)*similarities.min()
     print 'normalization done'
@@ -31,7 +31,7 @@ def refineSimilarities(config_id):
     for i in xrange(sup_num):
         if i % 1000 == 0:
             print i, '/', sup_num
-        neighbors = kdtree.query(centers[i], 50)[1]
+        neighbors = kdtree.query(centers[i], 500)[1]
         for nei in neighbors:
             refined_similarities[i][nei] = 1.0 
             # refined_similarities[i][nei] = similarities[i][nei]
