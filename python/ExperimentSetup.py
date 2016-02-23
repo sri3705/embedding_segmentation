@@ -19,6 +19,9 @@ def labelledlevelvideo_generator(conf):
     segmented_path = conf.getPath('segmented_path')
     # out_path1 = conf.db_settings['pixellabelledlevelvideo_path'].format(video_name=video_name, action_name=action_name, level=level)
     frame_number = conf.db_settings['frame']
+    print '[ExperimentSetup::labelledlevelvideo_generator] frame:', frame_number
+
+
     #frame_number = 21
     out_path = conf.getPath('pixellabelledlevelvideo_path')
     # assert out_path1 == out_path2
@@ -26,7 +29,7 @@ def labelledlevelvideo_generator(conf):
     img = Image.open(glob.glob(segmented_path+"*.ppm")[0])
     size = img.size
     sups_nums = np.zeros((1,frame_number))
-    mat = np.zeros((size[1]/2, size[0]/2, frame_number))
+    mat = np.zeros((size[1]/2, size[0]/2, frame_number), dtype=np.int32)
     print '[ExperimentSetup::labelledlevelvideo_generator] creating labelledlevelvideo.mat'
     for i,img_path in enumerate(glob.glob(segmented_path+"*.ppm")):
         if i == frame_number:
@@ -48,9 +51,9 @@ def labelledlevelvideo_generator(conf):
     savemat(out_path, {'labelledlevelvideo':mat, 'numberofsuperpixelsperframe':sups_nums})
 
 
-def setup_experiment(extract_features=False, visualization=False, comment=None, compute_segment=False):
+def setup_experiment(extract_features=False, visualization=False, comment=None, compute_segment=False, action_name=None):
     # need to extract features?
-    config = getConfigs(comment=comment)
+    config = getConfigs(comment=comment, action_name=action_name)
     print "Experiment number:", config.experiment_number
     logger = Logger(config.log_type, config.log_path)
     logger.log('Configs created:')
@@ -96,8 +99,13 @@ if __name__=='__main__':
         compute_segment = True
     else:
         compute_segment = False
+    if "-v" in sys.argv:
+        j = sys.argv.index('-v')
+        action_name = sys.argv[j+1]
+    else:
+        action_name = None
     comment = ''
     i = sys.argv.index('-m')
     comment = sys.argv[i+1]
     print "extract_features = ", extract_features
-    setup_experiment(extract_features=extract_features, visualization=False, comment=comment, compute_segment=compute_segment)
+    setup_experiment(extract_features=extract_features, visualization=False, comment=comment, compute_segment=compute_segment, action_name=action_name)

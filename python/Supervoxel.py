@@ -1,6 +1,7 @@
 from PIL import Image
 import math
 from operator import add
+import numpy as np
 
 def delete_module(modname, paranoid=None):
     from sys import modules
@@ -73,9 +74,9 @@ class Supervoxel(object):
         #self.colors_dict = {} # (x,y,f) -> (R, G, B) actual color in the frame
         #TODO
         self.overlap_count = 0 #number of overlapping pixels with ground thruth
-        self.__initializeCenter()
+        self._initializeCenter()
 
-    def __initializeCenter(self):
+    def _initializeCenter(self):
         self.sum_x = 0
         self.sum_y = 0
         self.sum_t = 0
@@ -142,61 +143,65 @@ class HistogramSupervoxel(Supervoxel):
         # self.__initializeHistogram()
 
 
-    def __initializeHistogram(self):
+    def _initializeHistogram(self):
         self.R_hist = [0 for i in xrange(256)]
         self.G_hist = [0 for i in xrange(256)]
         self.B_hist = [0 for i in xrange(256)]
 
-    def __initializeFlow(self):
-        self.ch1_hist = [0 for i in xrange(256)]
-        self.ch2_hist = [0 for i in xrange(256)]
+    def _initializeFlow(self):
+        self.ch1_hist = np.zeros((1,256), dtype=np.float16) #[0 for i in xrange(256)]
+        self.ch2_hist = np.zeros((1,256), dtype=np.float16) #[0 for i in xrange(256)]
         # self.ch3_hist = [0 for i in xrange(256)]
 
-    def __initializeFCN(self):
-        self.fcn = [0 for i in xrange(21)]
+    def _initializeFCN(self):
+        self.fcn = np.zeros((1,21), dtype=np.float16) #[0 for i in xrange(21)]
 
     def merge(self, supervoxel):
         super(HistogramSupervoxel, self).merge(supervoxel)
-        self.R_hist = map(add, self.R_hist, supervoxel.R_hist) 
-        self.G_hist = map(add, self.G_hist, supervoxel.G_hist) 
-        self.B_hist = map(add, self.B_hist, supervoxel.B_hist) 
-        self.ch1_hist = map(add, self.ch1_hist, supervoxel.ch1_hist) 
-        self.ch2_hist = map(add, self.ch2_hist, supervoxel.ch2_hist) 
-        self.fcn = map(add, self.fcn, supervoxel.fcn) 
+        # self.R_hist = map(add, self.R_hist, supervoxel.R_hist) 
+        # self.G_hist = map(add, self.G_hist, supervoxel.G_hist) 
+        # self.B_hist = map(add, self.B_hist, supervoxel.B_hist) 
+        self.ch1_hist = np.add(self.ch1_hist, supervoxel.ch1_hist) #map(add, self.ch1_hist, supervoxel.ch1_hist) 
+        self.ch2_hist = np.add(self.ch2_hist, supervoxel.ch2_hist) #map(add, self.ch2_hist, supervoxel.ch2_hist) 
+        # self.fcn = map(add, self.fcn, supervoxel.fcn) 
+        self.fcn = np.add(self.fcn, supervoxel.fcn) 
+
+    def _updateHistogram(self, color):
+        self.R_hist[color[0]] += 1
+        self.G_hist[color[1]] += 1
+        self.B_hist[color[2]] += 1
 
     def addVoxel(self, x,y,t, color, label=0):
         super(HistogramSupervoxel, self).addVoxel(x,y,t,color,label)
-        try:
-            self.__updateHistogram(color)
-        except:
-            self.__initializeHistogram()
-            self.__updateHitsogram(color)
+        # try:
+            # self._updateHistogram(color)
+        # except:
+            # self._initializeHistogram()
+            # self._updateHistogram(color)
 
     def addOpticalFlow(self, flow):
         try:
-            self.ch1_hist[flow[0]] +=1
-            self.ch2_hist[flow[2]] +=1
+            self.ch1_hist[0,flow[0]] +=1
+            self.ch2_hist[0,flow[2]] +=1
         except:
-            self.__initializeFlow()
-            self.ch1_hist[flow[0]] +=1
-            self.ch2_hist[flow[2]] +=1
+            self._initializeFlow()
+            self.ch1_hist[0,flow[0]] +=1
+            self.ch2_hist[0,flow[2]] +=1
         # self.ch3_hist[flow[2]] +=1
 
     def addFCN(self, fcn):
         try:
-            self.fcn = map(add, self.fcn, fcn)
+            self.fcn = np.add(self.fcn, fcn)
+            # self.fcn = map(add, self.fcn, fcn)
             # for i in xrange(21):
                 # self.fcn[i]+= fcn[i]
         except:
-            self.__initializeFCN()
-            self.fcn = map(add, self.fcn, fcn)
+            self._initializeFCN()
+            self.fcn = np.add(self.fcn, fcn)
+            # self.fcn = map(add, self.fcn, fcn)
             # for i in xrange(21):
                 # self.fcn[i]+= fcn[i]
 
-    def __updateHistogram(self, color):
-        self.R_hist[color[0]] += 1
-        self.G_hist[color[1]] += 1
-        self.B_hist[color[2]] += 1
 
     def getFeature(self, number_of_bins=256):
         bin_width = 256/number_of_bins
@@ -214,20 +219,36 @@ class HistogramSupervoxel(Supervoxel):
         return color_histogram
 
     def getFCN(self):
-        return [i*1.0/self.number_of_pixels for i in self.fcn]
+        # return [i*1.0/self.number_of_pixels for i in self.fcn]
+        return self.fcn/self.number_of_pixels
+
+    def getHOF(self,optical_flow_bins=256):
+        bin_width = 256/optical_flow_bins
+        bin_num = -1
+        ch1_hist = np.zeros((1, optical_flow_bins))
+        ch2_hist = np.zeros((1, optical_flow_bins))
+        # ch1_hist = [0 for i in xrange(optical_flow_bins)]
+        for i in xrange(256):
+            if i%bin_width == 0:
+                    bin_num+=1
+            ch1_hist[0,bin_num]+=self.ch1_hist[0,i]
+            ch2_hist[0,bin_num]+=self.ch2_hist[0,i]
+        
+        return np.concatenate((ch1_hist, ch2_hist), axis=1)/self.number_of_pixels
 
     def getOpticalFlow(self,optical_flow_bins=256):
         bin_width = 256/optical_flow_bins
         bin_num = -1
-        ch1_hist = [0 for i in xrange(optical_flow_bins)]
-        ch2_hist = ch1_hist[:]
+        ch1_hist = np.zeros((1, optical_flow_bins))
+        ch2_hist = np.zeros((1, optical_flow_bins))
+        # ch1_hist = [0 for i in xrange(optical_flow_bins)]
         for i in xrange(256):
             if i%bin_width == 0:
                     bin_num+=1
-            ch1_hist[bin_num]+=self.ch1_hist[i]
-            ch2_hist[bin_num]+=self.ch2_hist[i]
-        optical_flow = [i*1.0/self.number_of_pixels for i in ch1_hist+ch2_hist]
-        return optical_flow
+            ch1_hist[0,bin_num]+=self.ch1_hist[0,i]
+            ch2_hist[0,bin_num]+=self.ch2_hist[0,i]
+        
+        return np.concatenate((ch1_hist, ch2_hist), axis=1)/self.number_of_pixels
 
 
 

@@ -10,9 +10,9 @@ class Config:
         self.visualization_path = '/cs/vml2/smuralid/projects/embedding_segmentation/python/Visualization/'
         self.comment = comment
         if not experiment_number:
-            self.__create_config__()
+            self.__create_config__(action_name)
 
-    def __create_config__(self):
+    def __create_config__(self, action_name=None):
         self.frame_format = '{0:05d}.ppm'
         vals = [0]
         for x in getDirs(self.experiments_root):
@@ -22,6 +22,7 @@ class Config:
                 vals.append(int(x.split('-')[0]))
 
         self.experiment_number = max(vals)+1
+        print 'Experiment number is:', self.experiment_number
         if self.comment:
             self.experiments_path = self.experiments_root+'/{0}-{1}/'.format(self.experiment_number,self.comment)
         else:
@@ -73,7 +74,7 @@ class Config:
         mkdirs(self.solver['snapshot_prefix'])
         self.results_path = self.experiments_path+'/results.txt'
         db_settings = getattr(self, '__' + self.db + '__')
-        self.db_settings = db_settings()
+        self.db_settings = db_settings(action_name)
         # old version: (but why?)
         #self.db_settings = {
     	#	'jhmdb': self.__jhmdb__(),
@@ -81,20 +82,21 @@ class Config:
     	#}
 
 
-    def __jhmdb__(self):
+    def __jhmdb__(self, action_name=None):
         jhmdb = {
             'db':    			'jhmdb',
-            'action_name':    		['vw_commercial'], #['pour'],
+            'action_name':    	['rock_climbing'] if action_name is None else [action_name],# ['vw_commercial'], #['pour'],
             'level':    		8,
-            'video_name':    		{},
-            'frame':    		21,
+            'video_name':    {},
+            'frame':    		None,
             'frame_format':    		self.frame_format,
             'number_of_negatives':  self.model['number_of_negatives'],
             'number_of_neighbors':  self.model['number_of_neighbors'],
+            'root_path':    		'/cs/vml3/mkhodaba/{action_name}/',
             'inner_product_output': self.model['inner_product_output'],
-            # 'root_path':    		'/cs/vml2/mkhodaba/datasets/JHMDB/puppet_mask/{action_name}/',
-            'root_path':    		'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/',
-            'orig_path':    		'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/',
+            'orig_path':    		'/cs/vml2/mkhodaba/datasets/VSB100/Test/{action_name}/ppm/',
+            # 'annotation_path':    	'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/puppet_mask.mat',
+            'annotation_path':    	'/cs/vml2/mkhodaba/datasets/VSB100/files/{action_name}/puppet_mask.mat',
             #Actually next line is the optical flow
             # 'orig_path':    		'/cs/vml2/mkhodaba/datasets/VSB100/Test_flow/{action_name}/',
             # 'annotation_path':    	'/cs/vml2/mkhodaba/datasets/JHMDB/puppet_mask/{action_name}/{video_name}/puppet_mask.mat',
@@ -118,20 +120,15 @@ class Config:
             'database_list_path':    	self.model['database_list_path'],
             'feature_type':    		self.model['feature_type'],
         }
-        start_idx = 0
-        num_videos = 2 #set to None for all
+        if action_name is not None and jhmdb['frame'] is None:
+            jhmdb['frame'] = getNumberOfFiles(jhmdb['orig_path'].format(action_name=jhmdb['action_name'][0]))
+        print 'action_name', jhmdb['action_name']
         for action in jhmdb['action_name']:
-        #TODO this line!
-            jhmdb['video_name'][action] = getDirs(jhmdb['root_path'].format(action_name=action))[start_idx:num_videos] #TODO #TODO This should be changed!!!!!!!!!!!!!
-            print '\n'.join(jhmdb['video_name'][action])
-        #    	for action in jhmdb['action_name']:
-        #    		for video in jhmdb['video_name'][action]:
-        #    			db_path = jhmdb['database_path'].format(action_name=action, video_name=video, level=jhmdb['level'])
-        #    			self.solver['_test_nets'].append(db_path)
+            jhmdb['video_name'][action] = ['b1']
         return jhmdb
 
 
-    def __vsb100__(self):
+    def __vsb100__(self,action_name=None):
             vsb100 = {
                 'db':    			'vsb100',
                 'action_name':    		'vw_commercial', #['pour'],
@@ -187,8 +184,8 @@ class Config:
     	#print s
     #	return s
 
-def getConfigs(experiment_num=None, comment=None):
-    conf = Config(experiment_num, comment)
+def getConfigs(experiment_num=None, comment=None, action_name=None):
+    conf = Config(experiment_num, comment, action_name)
     vals = [0]
     for x in getDirs(conf.experiments_root):
         try:
