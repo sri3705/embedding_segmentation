@@ -46,7 +46,7 @@ class Config:
             'model_prototxt_path':    self.experiments_path+'/model.prototxt',
             'test_prototxt_path':    self.experiments_path+'/test.prototxt',
             'database_list_path':    self.experiments_path+'/database_list.txt',
-            'feature_type':    	[FeatureType.FCN, FeatureType.HOF]#FeatureType.COLOR_HISTOGRAM#
+            'feature_type':    	[FeatureType.FCN, FeatureType.HOF, FeatureType.CLR]#FeatureType.COLOR_HISTOGRAM#
         }
 
         self.solver = {
@@ -60,7 +60,7 @@ class Config:
             'test_iter':        1,
             'snapshot':        2000,
             'lr_policy':         "step",
-            'stepsize':        800,
+            'stepsize':        1500,
             'snapshot_prefix':    self.experiments_path+'/snapshot/',
             'net':    		self.model['test_prototxt_path'],
             '_train_net':    	self.model['model_prototxt_path'],
