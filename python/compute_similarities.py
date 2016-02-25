@@ -73,6 +73,13 @@ def getips(conf, net, superpixels_num, layer='inner_product_target'):
 
 def getRepresentations(conf, net, superpixels_num, layer='inner_product_target'):
     data = net.blobs[layer].data
+#this one works on databases that records of each target are together in the database table!
+# target0 [...neighbors...] negative0
+# target1 [...neighbors...] negative0
+# ...
+# target0 [...neighbors...] negative1
+# target1 [...neighbors...] negative1
+# ...
     #data = net.blobs['InnerProduct1'].data
     assert data.shape[0] == 1, 'batch size != ? ... this assert is not important'
     feature_len = data.shape[1]
@@ -83,6 +90,34 @@ def getRepresentations(conf, net, superpixels_num, layer='inner_product_target')
         negative_numbers = 1
     #for i in xrange(superpixels_num*negative_numbers):
     for i in xrange(superpixels_num):
+=======
+    for i in xrange(superpixels_num):
+        if i%1000==1:
+            print i,'/',superpixels_num
+        net.forward()
+        reps[i][...] = net.blobs['inner_product_target'].data
+        # print net.blobs['inner_product_target'].data[1:10]
+    return reps
+
+#this one works on databases that records of each target are together in the database table!
+# target0 [...neighbors...] negative0
+# target0 [...neighbors...] negative1
+# ...
+# target1 [...neighbors...] negative0
+# target1 [...neighbors...] negative1
+# ...
+def getRepresentations_old(conf, net, superpixels_num):
+    data = net.blobs['inner_product_target'].data
+    #data = net.blobs['InnerProduct1'].data
+    assert data.shape[0] == 1, 'batch size != ? ... this assert is not important'
+    feature_len = data.shape[1]
+    reps = np.zeros((superpixels_num, feature_len))
+    try:
+        negative_numbers = conf.model['number_of_negatives']
+    except:
+        negative_numbers = 1
+    for i in xrange(superpixels_num*negative_numbers):
+>>>>>>> upstream/master
         if i%1000==1:
             print i
         net.forward()

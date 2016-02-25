@@ -89,6 +89,7 @@ class Config:
             'level':    		8,
             'video_name':    {},
             'frame':    		21,
+            'action_name':    	['arctic_kayak'] if action_name is None else [action_name],# ['vw_commercial'], #['pour'],
             'frame_format':    		self.frame_format,
             'number_of_negatives':  self.model['number_of_negatives'],
             'number_of_neighbors':  self.model['number_of_neighbors'],
@@ -119,8 +120,9 @@ class Config:
             'database_list_path':    	self.model['database_list_path'],
             'feature_type':    		self.model['feature_type'],
         }
-        if action_name is not None and jhmdb['frame'] is None:
+        if jhmdb['frame'] is None:
             jhmdb['frame'] = getNumberOfFiles(jhmdb['orig_path'].format(action_name=jhmdb['action_name'][0]))
+            print 'This video has {} frames', jhmdb['frame']
         print 'action_name', jhmdb['action_name']
         for action in jhmdb['action_name']:
             jhmdb['video_name'][action] = ['b1']

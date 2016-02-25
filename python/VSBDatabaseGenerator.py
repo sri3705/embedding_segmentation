@@ -3,7 +3,7 @@ from scipy.spatial import cKDTree
 
 def createVSB100Database(data, db_settings, logger):
     negative_numbers = db_settings['number_of_negatives']
-    k = db_settings['number_of_neighbors'] 
+    k = db_settings['number_of_neighbors']
     colors = data['colors']
     centers = data['centers']
     level = db_settings['level']
@@ -13,13 +13,13 @@ def createVSB100Database(data, db_settings, logger):
     assert colors.shape[0] == features[0].shape[0], 'Feature dimensions mismatch %s != %s' % (colors.shape[0],  features[0].shape[0])
     features = np.concatenate(features, axis=1)
     #TODO: if voxel_labels is not there produce it
-    #TODO: if pixel_labels is not there produce it 
-   
+    #TODO: if pixel_labels is not there produce it
+
     number_of_voxels = colors.shape[0]
     n = number_of_voxels * negative_numbers
     database_negative_indices = np.zeros((number_of_voxels, negative_numbers), dtype=np.int32)
     database_neighbor_indices = np.zeros((number_of_voxels, k), dtype=np.int32)
-    kdtree = cKDTree(centers.tolist()) 
+    kdtree = cKDTree(centers.tolist())
     for i in xrange(number_of_voxels):
         neighbors_all = kdtree.query(centers[i], 10*k)[1][1:]
         neighbors = neighbors_all[:k]
@@ -27,7 +27,7 @@ def createVSB100Database(data, db_settings, logger):
         negatives = neighbors_negatives[:negative_numbers]
         database_negative_indices[i][...] = negatives
         database_neighbor_indices[i][...] = neighbors
-    
+
     database = h5py.File(database_path, 'w')
     database['target'] = np.tile(features, (negative_numbers, 1))
     # database.close()
@@ -45,8 +45,8 @@ def createVSB100Database(data, db_settings, logger):
         s_idx = features.shape[0]*neg
         e_idx = features.shape[0]*(neg+1)
         neighbor_features[s_idx:e_idx] = features[database_negative_indices[:,neg]][...]
-    
-    database['negative'] = neighbor_features 
+
+    database['negative'] = neighbor_features
     print 'negative done'
     database.close()
 
@@ -61,7 +61,7 @@ def createVoxelLabelledlevelvideoData(db_settings, colors):
     level = db_settings['level']
     segmented_path = db_settings['segmented_path'].format(action_name=action_name, level=level)+'{0:05d}.ppm'
     labelledlevelvideo_path = db_settings['voxellabelledlevelvideo_path'].format(level=level)
-    orig_img = Image.open(segmented_path.format(frame_num)) 
+    orig_img = Image.open(segmented_path.format(frame_num))
     width, height = orig_img.size
     mapped = np.zeros(( height, width, frame_num-1))
     colors_to_id = {}
