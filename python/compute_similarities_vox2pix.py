@@ -87,10 +87,13 @@ def buildVoxel2PixelSimilarities(config_id):
     # mat = loadmat(conf.experiments_path+'/sim.mat')
     voxelSimilarities = mat['similarities']
     #Load superpixel information (1-based)
-    # mat = loadmat('/cs/vml3/mkhodaba/cvpr16/Graph_construction/Features/vw_commercial_vidinfo.mat')
     level = db_settings['level']
     video_name = db_settings['action_name'][0]
-    mat = loadmat('/cs/vml2/smuralid/projects/eccv16/dataset/VSB100/VideoProcessingTemp/{0}/vidinfo_{1:02d}.mat'.format(video_name, level))
+    # path = '/cs/vml2/mkhodaba/cvpr16/VSB100/VideoProcessingTemp/{1}/vidinfo_{1:02d}.mat'.format(video_name, level)
+    # video_name = 'vw_commercial_21f'
+    path = '/cs/vml2/mkhodaba/cvpr16/VSB100/VideoProcessingTemp/{0}/vidinfo_{1:02d}.mat'.format(video_name, level)
+    mat = loadmat(path)
+    # mat = loadmat('/cs/vml2/smuralid/projects/eccv16/dataset/VSB100/VideoProcessingTemp/{0}/vidinfo_{1:02d}.mat'.format(video_name, level))
     mapped = mat['mapped']
     numberofsuperpixelsperframe = mat['numberofsuperpixelsperframe']
     total_superpixels_num = np.sum(numberofsuperpixelsperframe)

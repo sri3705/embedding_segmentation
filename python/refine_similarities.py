@@ -31,7 +31,7 @@ def refineSimilarities(config_id):
     for i in xrange(sup_num):
         if i % 1000 == 0:
             print i, '/', sup_num
-        neighbors = kdtree.query(centers[i], 500)[1]
+        neighbors = kdtree.query(centers[i], 40)[1]
         for nei in neighbors:
             refined_similarities[i][nei] = 1.0 
             # refined_similarities[i][nei] = similarities[i][nei]

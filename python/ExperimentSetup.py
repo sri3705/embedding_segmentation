@@ -26,6 +26,7 @@ def labelledlevelvideo_generator(conf):
     out_path = conf.getPath('pixellabelledlevelvideo_path')
     # assert out_path1 == out_path2
     import glob
+    print 'segmented_path=', segmented_path
     img = Image.open(glob.glob(segmented_path+"*.ppm")[0])
     size = img.size
     sups_nums = np.zeros((1,frame_number))

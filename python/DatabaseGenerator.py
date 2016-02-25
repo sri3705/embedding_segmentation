@@ -138,7 +138,7 @@ def createJHMDBParallel(db_settings, logger):
                 del segmentor
                 logger.log('Saving data')
                 s = time.time()
-                np.savez(features_path.format(action_name=action, feature_name='features'), **data) 
+                np.savez(features_path.format(action_name=action, feature_name='features', level=level), **data) 
                 # logger.log('*** Pickling ***')
                 # s = time.time()
                 # logger.log('Elapsed time: {0}'.format(time.time()-s))
@@ -149,7 +149,7 @@ def createJHMDBParallel(db_settings, logger):
             else: # Don't compute segments
                 logger.log('No need to compute segments')
                 logger.log('loading features')
-                data = np.load(features_path.format(action_name=action, feature_name='features'))
+                data = np.load(features_path.format(action_name=action, feature_name='features',level=level))
                 # segmentor = pickle.load(open(pickle_path.format(action_name=action, video_name=video, level=level), 'r'))
                 # segmentor.output_path = output_path
                 # segmentor.__class__ = MySegmentation

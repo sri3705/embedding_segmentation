@@ -149,12 +149,12 @@ class HistogramSupervoxel(Supervoxel):
         self.B_hist = [0 for i in xrange(256)]
 
     def _initializeFlow(self):
-        self.ch1_hist = np.zeros((1,256), dtype=np.float16) #[0 for i in xrange(256)]
-        self.ch2_hist = np.zeros((1,256), dtype=np.float16) #[0 for i in xrange(256)]
+        self.ch1_hist = np.zeros((1,256), dtype=np.float32) #[0 for i in xrange(256)]
+        self.ch2_hist = np.zeros((1,256), dtype=np.float32) #[0 for i in xrange(256)]
         # self.ch3_hist = [0 for i in xrange(256)]
 
     def _initializeFCN(self):
-        self.fcn = np.zeros((1,21), dtype=np.float16) #[0 for i in xrange(21)]
+        self.fcn = np.zeros((1,21), dtype=np.float32) #[0 for i in xrange(21)]
 
     def merge(self, supervoxel):
         super(HistogramSupervoxel, self).merge(supervoxel)

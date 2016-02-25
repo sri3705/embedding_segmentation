@@ -26,7 +26,39 @@ def getJHMDBRepresentations(conf, solver):
     superpixels_num = mat['total_number_of_supervoxels']
     return getRepresentations(conf, solver, superpixels_num)
 
+#this one works on databases that records of each target are together in the database table!
+# target0 [...neighbors...] negative0
+# target1 [...neighbors...] negative0
+# ...
+# target0 [...neighbors...] negative1
+# target1 [...neighbors...] negative1
+# ...
 def getRepresentations(conf, net, superpixels_num):
+    data = net.blobs['inner_product_target'].data
+    #data = net.blobs['InnerProduct1'].data
+    assert data.shape[0] == 1, 'batch size != ? ... this assert is not important'
+    feature_len = data.shape[1]
+    reps = np.zeros((superpixels_num, feature_len))
+    try:
+        negative_numbers = conf.model['number_of_negatives']
+    except:
+        negative_numbers = 1
+    for i in xrange(superpixels_num):
+        if i%1000==1:
+            print i,'/',superpixels_num
+        net.forward()
+        reps[i][...] = net.blobs['inner_product_target'].data
+        # print net.blobs['inner_product_target'].data[1:10]
+    return reps
+
+#this one works on databases that records of each target are together in the database table!
+# target0 [...neighbors...] negative0
+# target0 [...neighbors...] negative1
+# ...
+# target1 [...neighbors...] negative0
+# target1 [...neighbors...] negative1
+# ...
+def getRepresentations_old(conf, net, superpixels_num):
     data = net.blobs['inner_product_target'].data
     #data = net.blobs['InnerProduct1'].data
     assert data.shape[0] == 1, 'batch size != ? ... this assert is not important'
