@@ -233,18 +233,18 @@ class Segmentation(object):
 
     def createVoxelLabelledlevelvideoData(self):
         #TODO:
-        # self.current_frame = 22
+        # self.current_frame = 2
         print "[Segmentation::VoxelLabelledlevelvideoData]  self.current_frame = {}".format(self.current_frame)
         segmented_path = self.segmented_path.format(self.current_frame-1)
         orig_img = MyImage(segmented_path)
         width, height = orig_img.size
-        mapped = np.zeros(( height, width, self.current_frame-1), dtype=np.int32)
+        mapped = np.zeros(( height, width, self.current_frame), dtype=np.float32)
         self.colors_to_id = {}
             # 1-based
         for i, sv in enumerate(self.supervoxels_list):
             self.colors_to_id[sv.ID] = i+1
         print "%%%%%%%% frames:", self.current_frame-1
-        for f in xrange(self.current_frame-1):
+        for f in xrange(self.current_frame):
             img = MyImage(self.segmented_path.format(f+1))
             for h in xrange(height):
                 for w in xrange(width):

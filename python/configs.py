@@ -5,7 +5,7 @@ import cPickle as pickle
 from Segmentation import *
 
 class Config:
-    def __init__(self, experiment_number=None, comment=None):
+    def __init__(self, experiment_number=None, comment=None, action_name=None):
         self.experiments_root = '/local-scratch/experiments/'
         self.visualization_path = '/cs/vml2/smuralid/projects/embedding_segmentation/python/Visualization/'
         self.comment = comment
@@ -36,7 +36,7 @@ class Config:
         self.model = {
             'batch_size':    	64,
             'number_of_neighbors':    8, #number of neighbors around the target superpixel
-            'number_of_negatives':  8,
+            'number_of_negatives':  20,
             'inner_product_output':    128, #2*(3*256+192),
             'weight_lr_mult':    1,
             'weight_decay_mult':    1,
@@ -45,7 +45,7 @@ class Config:
             'model_prototxt_path':    self.experiments_path+'/model.prototxt',
             'test_prototxt_path':    self.experiments_path+'/test.prototxt',
             'database_list_path':    self.experiments_path+'/database_list.txt',
-            'feature_type':    	[FeatureType.FCN, FeatureType.HOF]#FeatureType.COLOR_HISTOGRAM#
+            'feature_type':    	[FeatureType.HOF]#FeatureType.COLOR_HISTOGRAM#FeatureType.FCN,
         }
 
         self.solver = {
@@ -59,12 +59,12 @@ class Config:
             'test_iter':        1,
             'snapshot':        2000,
             'lr_policy':         "step",
-            'stepsize':        500,
+            'stepsize':        400,
             'snapshot_prefix':    self.experiments_path+'/snapshot/',
             'net':    		self.model['test_prototxt_path'],
             '_train_net':    	self.model['model_prototxt_path'],
             '_test_nets':    	self.model['test_prototxt_path'],
-            'max_iter':    	20000,
+            'max_iter':    	10000,
             '_train_interval':    500,
             '_termination_threshold':0.0004,
             '_solver_prototxt_path':    self.experiments_path+'/solver.prototxt',
@@ -88,7 +88,7 @@ class Config:
             'action_name':    	['rock_climbing'] if action_name is None else [action_name],# ['vw_commercial'], #['pour'],
             'level':    		8,
             'video_name':    {},
-            'frame':    		None,
+            'frame':    		21,
             'frame_format':    		self.frame_format,
             'number_of_negatives':  self.model['number_of_negatives'],
             'number_of_neighbors':  self.model['number_of_neighbors'],
@@ -97,25 +97,24 @@ class Config:
             'orig_path':    		'/cs/vml2/mkhodaba/datasets/VSB100/Test/{action_name}/ppm/',
             # 'annotation_path':    	'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/puppet_mask.mat',
             'annotation_path':    	'/cs/vml2/mkhodaba/datasets/VSB100/files/{action_name}/puppet_mask.mat',
-            #Actually next line is the optical flow
-            # 'orig_path':    		'/cs/vml2/mkhodaba/datasets/VSB100/Test_flow/{action_name}/',
-            # 'annotation_path':    	'/cs/vml2/mkhodaba/datasets/JHMDB/puppet_mask/{action_name}/{video_name}/puppet_mask.mat',
-            'annotation_path':    	'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/puppet_mask.mat',
-            # 'segmented_path':    '/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/data/results/images/motionsegmentation/{level:02d}/',  #+frame_format,
-            # 'segmented_path':    	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/segmented_frames/{action_name}/{video_name}/{level:02d}/',  #+frame_format,
-            'segmented_path':    	'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/seg/{level:02d}/',  #+frame_format,
+            #'segmented_path':    	'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/seg/{level:02d}/',  #+frame_format,
+            #'segmented_path':    	'/cs/vml2/mkhodaba/datasets/VSB100/segmented_frames/{action_name}/{level:02d}/',  #+frame_format,
+            'segmented_path':    	'/cs/vml2/mkhodaba/datasets/VSB100/segmented_frames/{action_name}/{level:02d}/',  #+frame_format,
+            #'segmented_path':    	'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/b1/seg/{level:02d}/',#cs/vml2/mkhodaba/datasets/VSB100/segmented_frames/{action_name}/{level:02d}/',  #+frame_format,
             'optical_flow_path':    	'/cs/vml2/mkhodaba/datasets/VSB100/Test_flow/{action_name}/',
             'fcn_path':                 '/cs/vml2/smuralid/projects/eccv16/python/preprocessing/fcn/Test/{action_name}/',
             #'features_path':     '/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/features.txt',
-            'features_path':     	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/hist.mat',
             'output_path':          self.experiments_path + 'indices.mat',#+frame_format
+            'features_path':     	'/cs/vml2/smuralid/projects/eccv16/datasets/files/{action_name}/{feature_name}_{level}.npz',
+
+
             'segmentation_log_path':self.experiments_path + 'Shared/Benchmark/Segmcfstltifefff/Output/results.txt',
             # 'database_path':    	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/databases/{action_name}/{video_name}/{level:02d}.h5',
             'database_path':    	self.experiments_path+ '/{level:02d}.h5',
             # 'pickle_path':    		'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/pickle/{action_name}/{video_name}/{level:02d}.p',
             'pickle_path':    		'/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/{level:02d}.p',
-            'pixellabelledlevelvideo_path':    		'/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/pixellabelledlevelvideo_{level:02d}.mat',
-            'voxellabelledlevelvideo_path':         '/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/voxellabelledlevelvideo_{level:02d}.mat',
+            'pixellabelledlevelvideo_path':   '/cs/vml2/smuralid/projects/eccv16/datasets/{action_name}/pixellabelledlevelvideo_{level:02d}.mat',
+            'voxellabelledlevelvideo_path':   '/cs/vml2/smuralid/projects/eccv16/datasets/files/{action_name}/voxellabelledlevelvideo_{level:02d}.mat',
             'test_database_list_path':    self.experiments_path+'/database_list_{name}.txt',
             'database_list_path':    	self.model['database_list_path'],
             'feature_type':    		self.model['feature_type'],
@@ -192,7 +191,6 @@ def getConfigs(experiment_num=None, comment=None, action_name=None):
             vals.append(int(x))
         except ValueError:
             vals.append(int(x.split('-')[0]))
-
     if experiment_num is not None:
     	if experiment_num == -1:
             experiment_num = max(vals)

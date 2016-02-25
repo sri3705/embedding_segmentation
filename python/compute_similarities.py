@@ -81,12 +81,14 @@ def getRepresentations(conf, net, superpixels_num, layer='inner_product_target')
         negative_numbers = conf.model['number_of_negatives']
     except:
         negative_numbers = 1
-    for i in xrange(superpixels_num*negative_numbers):
+    #for i in xrange(superpixels_num*negative_numbers):
+    for i in xrange(superpixels_num):
         if i%1000==1:
             print i
         net.forward()
-        if i%negative_numbers == 0:
-            reps[i/negative_numbers][...] = net.blobs[layer].data
+        #if i%negative_numbers == 0:
+        #    reps[i/negative_numbers][...] = net.blobs[layer].data
+        reps[i] = net.blobs[layer].data
         # print net.blobs['inner_product_target'].data[1:10]
     return reps
 

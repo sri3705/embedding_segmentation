@@ -1,10 +1,15 @@
 print "experiment setups initiating ... "
 from configs import *
+print "configs imported"
 from NetworkFactory import *
+print "networkfactory imported"
 from DatabaseGenerator import *
+print "databasegenerator imported"
 from Logger import *
+print "logger imported"
 import sys
 import os
+print "os, sys  imported"
 
 def labelledlevelvideo_generator(conf):
     # This function gives you the label of SuperPIXELS not supervoxels
@@ -17,10 +22,10 @@ def labelledlevelvideo_generator(conf):
     # video_name = conf.db_settings['video_name'][action_name][0]
     # level = 10
     segmented_path = conf.getPath('segmented_path')
+    print segmented_path
     # out_path1 = conf.db_settings['pixellabelledlevelvideo_path'].format(video_name=video_name, action_name=action_name, level=level)
     frame_number = conf.db_settings['frame']
     print '[ExperimentSetup::labelledlevelvideo_generator] frame:', frame_number
-
 
     #frame_number = 21
     out_path = conf.getPath('pixellabelledlevelvideo_path')
@@ -54,6 +59,7 @@ def labelledlevelvideo_generator(conf):
 def setup_experiment(extract_features=False, visualization=False, comment=None, compute_segment=False, action_name=None):
     # need to extract features?
     config = getConfigs(comment=comment, action_name=action_name)
+    experiment_path = config.experiments_root
     print "Experiment number:", config.experiment_number
     logger = Logger(config.log_type, config.log_path)
     logger.log('Configs created:')
@@ -82,6 +88,9 @@ def setup_experiment(extract_features=False, visualization=False, comment=None, 
         #TODO create the database list
         #TODO: probably in configs need to set how to merge them: for now separately
     else:
+        import glob
+        folders = sorted(glob.glob(experiment_path + '*/'))[-2:]
+        os.system('cp -f ' + folders[0] + '/*h5 ' + folders[1] + '/')
         write_db_list(config.db_settings, logger)
     logger.close()
     if not os.path.exists(out_path):

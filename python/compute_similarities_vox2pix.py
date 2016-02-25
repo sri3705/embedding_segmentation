@@ -92,6 +92,7 @@ def buildVoxel2PixelSimilarities(config_id):
     video_name = db_settings['action_name'][0]
     mat = loadmat('/cs/vml2/smuralid/projects/eccv16/dataset/VSB100/VideoProcessingTemp/{0}/vidinfo_{1:02d}.mat'.format(video_name, level))
     mapped = mat['mapped']
+    print 'mapped', 'pixel', '/cs/vml2/smuralid/projects/eccv16/dataset/VSB100/VideoProcessingTemp/{0}/vidinfo_{1:02d}.mat'.format(video_name, level)
     numberofsuperpixelsperframe = mat['numberofsuperpixelsperframe']
     total_superpixels_num = np.sum(numberofsuperpixelsperframe)
     pixellabelledlevelvideo=mat['labelledlevelvideo']
@@ -100,6 +101,7 @@ def buildVoxel2PixelSimilarities(config_id):
     video_name = db_settings['video_name']
     path = db_settings['voxellabelledlevelvideo_path'].format(action_name=action[0], video_name=video_name[action[0]][0], level=level)
     mat = loadmat(path)
+    print 'voxel', path
     voxellabelledlevelvideo=mat['labelledlevelvideo']
     #A simple check
     # assert voxellabelledlevelvideo.shape == pixellabelledlevelvideo.shape, "voxel and pixel information doesn't matchi: %s != %s" % (voxellabelledlevelvideo.shape, pixellabelledlevelvideo.shape)
@@ -122,7 +124,9 @@ def buildVoxel2PixelSimilarities(config_id):
                 if pixel_to_voxel[superpixel_idx] == -1:
                     pixel_to_voxel[superpixel_idx] = int(voxel_label)
                 else:
-                    assert pixel_to_voxel[superpixel_idx] == voxel_label, "Supervoxel should compeletely overlap with supervoxel"
+                    if pixel_to_voxel[superpixel_idx] != voxel_label:
+                        print "Supervoxel should compeletely overlap with supervoxel", 'superpixel_idx, voxel_label', superpixel_idx, voxel_label, 'h,w,f', h,w,f
+                        raise
                 # except Exception as e:
                     # print e
                     # print superpixel_idx
