@@ -90,7 +90,8 @@ def createJHMDBParallel(db_settings, logger):
                 if parallel:
                     from multiprocessing import Pool
                     print 'create pool'
-                    pool = Pool(6)
+                    #this is the real one
+                    pool = Pool(8)
                     print 'defining function'
                     parallelized_segmentor_list = pool.map(parallelProcess, segmentor_list)
                     pool.close()

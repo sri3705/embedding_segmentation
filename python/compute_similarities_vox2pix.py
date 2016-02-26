@@ -87,11 +87,11 @@ def buildVoxel2PixelSimilarities(config_id):
     # mat = loadmat(conf.experiments_path+'/sim.mat')
     voxelSimilarities = mat['similarities']
     #Load superpixel information (1-based)
-    level = db_settings['level']
+    level = int(db_settings['level'])
     video_name = db_settings['action_name'][0]
-    # path = '/cs/vml2/mkhodaba/cvpr16/VSB100/VideoProcessingTemp/{1}/vidinfo_{1:02d}.mat'.format(video_name, level)
-    # video_name = 'vw_commercial_21f'
     path = '/cs/vml2/mkhodaba/cvpr16/VSB100/VideoProcessingTemp/{0}/vidinfo_{1:02d}.mat'.format(video_name, level)
+    # video_name = 'vw_commercial_21f'
+    # path = '/cs/vml2/mkhodaba/cvpr16/VSB100/VideoProcessingTemp/{0}/vidinfo_{1:02d}.mat'.format(video_name, level)
     mat = loadmat(path)
     # mat = loadmat('/cs/vml2/smuralid/projects/eccv16/dataset/VSB100/VideoProcessingTemp/{0}/vidinfo_{1:02d}.mat'.format(video_name, level))
     mapped = mat['mapped']
@@ -112,11 +112,14 @@ def buildVoxel2PixelSimilarities(config_id):
     pixel_shape = pixellabelledlevelvideo.shape
     assert voxel_shape[0] == 2 * pixel_shape[0]
     assert voxel_shape[1] == 2 * pixel_shape[1]
+    print 'pixellabelledlevelvideo.shape',pixellabelledlevelvideo.shape
     height, width, frames = pixellabelledlevelvideo.shape
     print 'frames, width, height', frames, width, height
     #Do the mapping
     print 'total_superpixels_num', total_superpixels_num
     pixel_to_voxel = [-1 for i in xrange(total_superpixels_num)]
+    exit()
+
     for f in xrange(frames):
         print '[compute_similarities_vox2pix] frame:', f
         for w in xrange(width):

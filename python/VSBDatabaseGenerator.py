@@ -1,6 +1,22 @@
 import h5py, numpy as np
 from scipy.spatial import cKDTree
 
+def getNegatives(method, param, neighbors_all, negative_numbers, number_of_neighbors):
+    neighbors_negatives = neighbors_all#[4*number_of_neighbors:]
+    start = param
+    # start = param*number_of_neighbors
+    if method == 'close':
+        negatives = neighbors_negatives[start:start+negative_numbers]
+    elif method == 'far':
+        negatives = neighbors_negatives[-(start+negative_numbers):-start]
+    elif method == 'random':
+        import random
+        negatives = random.sample(neighbors_negatives[start+negative_numbers:]
+    else:
+        raise
+    return negatives
+
+
 def createVSB100Database(data, db_settings, logger):
     negative_numbers = db_settings['number_of_negatives']
     k = db_settings['number_of_neighbors']
@@ -8,6 +24,8 @@ def createVSB100Database(data, db_settings, logger):
     centers = data['centers']
     level = db_settings['level']
     database_path = db_settings['database_path'].format(level=level)
+    negative_selector_method = db_settings['negative_selector_method']
+    negative_selector_param = db_settings['negative_selector_param']
     # feature_names = [x.name for x in db_settings['feature_type']]
     features = [data[x.name] for x in db_settings['feature_type']]
     assert colors.shape[0] == features[0].shape[0], 'Feature dimensions mismatch %s != %s' % (colors.shape[0],  features[0].shape[0])
@@ -23,8 +41,7 @@ def createVSB100Database(data, db_settings, logger):
     for i in xrange(number_of_voxels):
         neighbors_all = kdtree.query(centers[i], 10*k)[1][1:]
         neighbors = neighbors_all[:k]
-        neighbors_negatives = neighbors_all[4*k:]
-        negatives = neighbors_negatives[:negative_numbers]
+        negatives = getNegatives(negative_selector_method, negative_selector_param, neighbors_all, negative_numbers, k)
         database_negative_indices[i][...] = negatives
         database_neighbor_indices[i][...] = neighbors
 

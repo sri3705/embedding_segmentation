@@ -25,9 +25,10 @@ class Config:
         self.experiment_number = max(vals)+1
         print 'Experiment number is:', self.experiment_number
         if self.comment:
-            self.experiments_path = self.experiments_root+'/{0}-{1}/'.format(self.experiment_number,self.comment)
+            self.experiment_folder_name = '{0}-{1}'.format(self.experiment_number,self.comment)
         else:
-            self.experiments_path = self.experiments_root+'/{0}/'.format(self.experiment_number)
+            self.experiment_folder_name = '{0}'.format(self.experiment_number)
+        self.experiments_path = self.experiments_root+'/'+self.experiment_folder_name+'/'
 
         mkdirs(self.experiments_path)
         self.log_path = self.experiments_path+'/log.txt'
@@ -46,9 +47,12 @@ class Config:
 
         self.model = {
             'batch_size':    	64,
-            'number_of_neighbors':    8, #number of neighbors around the target superpixel
+            'number_of_neighbors':    12, #number of neighbors around the target superpixel
             'number_of_negatives':  8,
-            'inner_product_output':    256, #2*(3*256+192),
+            'negative_selector_method': 'close',
+            'negative_selector_param': 4*8,
+            'inner_product_output':   64, #2*(3*256+192),
+            'inner_product_output_duplicate':   64, #2*(3*256+192),
             'weight_lr_mult':    1,
             'weight_decay_mult':    1,
             'b_lr_mult':    	2,
@@ -56,7 +60,8 @@ class Config:
             'model_prototxt_path':    self.experiments_path+'/model.prototxt',
             'test_prototxt_path':    self.experiments_path+'/test.prototxt',
             'database_list_path':    self.experiments_path+'/database_list.txt',
-            'feature_type':    	[FeatureType.FCN]#FeatureType.COLOR_HISTOGRAM#
+            'feature_type':    	[FeatureType.FCN, FeatureType.HOF]#FeatureType.COLOR_HISTOGRAM#
+
         }
 
         for model_key in self.model_args.keys():
@@ -118,18 +123,17 @@ class Config:
             'orig_path':    		'/cs/vml2/mkhodaba/datasets/VSB100/Test/{action_name}/ppm/',
             # 'annotation_path':    	'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/puppet_mask.mat',
             'annotation_path':    	'/cs/vml2/mkhodaba/datasets/VSB100/files/{action_name}/puppet_mask.mat',
-            #'segmented_path':    	'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/seg/{level:02d}/',  #+frame_format,
-            #'segmented_path':    	'/cs/vml2/mkhodaba/datasets/VSB100/segmented_frames/{action_name}/{level:02d}/',  #+frame_format,
-            'segmented_path':    	'/cs/vml2/mkhodaba/datasets/VSB100/segmented_frames/{action_name}/{level:02d}/',  #+frame_format,
-            #'segmented_path':    	'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/b1/seg/{level:02d}/',#cs/vml2/mkhodaba/datasets/VSB100/segmented_frames/{action_name}/{level:02d}/',  #+frame_format,
+            # 'segmented_path':    	'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/seg/{level:02d}/',  #+frame_format,
+            # 'segmented_path':    	'/cs/vml2/mkhodaba/datasets/VSB100/segmented_frames/{action_name}/{level:02d}/',  #+frame_format,
+            # 'segmented_path':    	'/cs/vml2/mkhodaba/datasets/VSB100/segmented_frames_larger/{action_name}/{level:02d}/',  #+frame_format,
+            'segmented_path':    	'/local-scratch/segmented_frames/{action_name}/{level:02d}/',  #+frame_format,
             'optical_flow_path':    	'/cs/vml2/mkhodaba/datasets/VSB100/Test_flow/{action_name}/',
             'fcn_path':                 '/cs/vml2/smuralid/projects/eccv16/python/preprocessing/fcn/Test/{action_name}/',
             #'features_path':     '/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/features.txt',
             'output_path':          self.experiments_path + 'indices.mat',#+frame_format
-            'features_path':     	'/cs/vml2/smuralid/projects/eccv16/datasets/files/{action_name}/{feature_name}_{level}.npz',
+            #'features_path':     	'/cs/vml2/smuralid/projects/eccv16/datasets/files/{action_name}/{feature_name}_{level}.npz',
+            'features_path':     	'/cs/vml2/mkhodaba/datasets/VSB100/files/{action_name}/{feature_name}_{level}.npz',
 
-
-            'segmentation_log_path':self.experiments_path + 'Shared/Benchmark/Segmcfstltifefff/Output/results.txt',
             # 'database_path':    	'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/databases/{action_name}/{video_name}/{level:02d}.h5',
             'database_path':    	self.experiments_path+ '/{level:02d}.h5',
             # 'pickle_path':    		'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/pickle/{action_name}/{video_name}/{level:02d}.p',
@@ -139,6 +143,8 @@ class Config:
             'test_database_list_path':    self.experiments_path+'/database_list_{name}.txt',
             'database_list_path':    	self.model['database_list_path'],
             'feature_type':    		self.model['feature_type'],
+            'negative_selector_method': self.model['negative_selector_method'],
+            'negative_selector_param': self.model['negative_selector_param'],
         }
         if jhmdb['frame'] is None:
             jhmdb['frame'] = getNumberOfFiles(jhmdb['orig_path'].format(action_name=jhmdb['action_name'][0]))
