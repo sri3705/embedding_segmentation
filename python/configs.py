@@ -5,14 +5,15 @@ import cPickle as pickle
 from Segmentation import *
 
 class Config:
-    def __init__(self, experiment_number=None, comment=None, action_name=None):
+    def __init__(self, experiment_number=None, comment=None, action_name=None, args=None):
         self.experiments_root = '/local-scratch/experiments/'
         self.visualization_path = '/cs/vml2/smuralid/projects/embedding_segmentation/python/Visualization/'
         self.comment = comment
+        self.args=args
         if not experiment_number:
-            self.__create_config__(action_name)
+            self.__create_config__(action_name, args)
 
-    def __create_config__(self, action_name=None):
+    def __create_config__(self, action_name=None, args=None):
         self.frame_format = '{0:05d}.ppm'
         vals = [0]
         for x in getDirs(self.experiments_root):
@@ -33,6 +34,16 @@ class Config:
         self.log_type = LogType.FILE
         # self.db = 'vsb100' # self.db = 'jhmdb' or 'vsb100'
         self.db = 'jhmdb'
+        print self.args
+        try:
+            self.model_args = self.args['model']
+        except:
+            self.model_args = {}
+        try:
+            self.solver_args = self.args['solver']
+        except:
+            self.solver_args = {}
+
         self.model = {
             'batch_size':    	64,
             'number_of_neighbors':    8, #number of neighbors around the target superpixel
@@ -47,6 +58,12 @@ class Config:
             'database_list_path':    self.experiments_path+'/database_list.txt',
             'feature_type':    	[FeatureType.FCN]#FeatureType.COLOR_HISTOGRAM#
         }
+
+        for model_key in self.model_args.keys():
+            self.model[model_key] = self.model_args[model_key]
+
+
+
 
         self.solver = {
             'weight_decay':    	0.00001,
@@ -71,6 +88,10 @@ class Config:
             '_model_prototxt_path':    self.model['model_prototxt_path'],
             '_solver_log_path':    self.experiments_path+'/solver.log',
         }
+
+        for solver_key in self.solver_args.keys():
+            self.solver[solver_key] = self.solver_args[solver_key]
+
         mkdirs(self.solver['snapshot_prefix'])
         self.results_path = self.experiments_path+'/results.txt'
         db_settings = getattr(self, '__' + self.db + '__')
@@ -184,8 +205,8 @@ class Config:
     	#print s
     #	return s
 
-def getConfigs(experiment_num=None, comment=None, action_name=None):
-    conf = Config(experiment_num, comment, action_name)
+def getConfigs(experiment_num=None, comment=None, action_name=None, args=None):
+    conf = Config(experiment_num, comment, action_name, args=args)
     vals = [0]
     for x in getDirs(conf.experiments_root):
         try:
