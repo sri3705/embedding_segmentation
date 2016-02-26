@@ -40,7 +40,7 @@ class Config:
             'number_of_neighbors':    12, #number of neighbors around the target superpixel
             'number_of_negatives':  8,
             'negative_selector_method': 'close',
-            'negative_selector_param': 1,
+            'negative_selector_param': 4*8,
             'inner_product_output':   64, #2*(3*256+192),
             'inner_product_output_duplicate':   64, #2*(3*256+192),
             'weight_lr_mult':    1,

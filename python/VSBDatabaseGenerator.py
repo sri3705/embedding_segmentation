@@ -2,12 +2,16 @@ import h5py, numpy as np
 from scipy.spatial import cKDTree
 
 def getNegatives(method, param, neighbors_all, negative_numbers, number_of_neighbors):
-    neighbors_negatives = neighbors_all[4*number_of_neighbors:]
-    start = param*number_of_neighbors
+    neighbors_negatives = neighbors_all#[4*number_of_neighbors:]
+    start = param
+    # start = param*number_of_neighbors
     if method == 'close':
         negatives = neighbors_negatives[start:start+negative_numbers]
     elif method == 'far':
         negatives = neighbors_negatives[-(start+negative_numbers):-start]
+    elif method == 'random':
+        import random
+        negatives = random.sample(neighbors_negatives[start+negative_numbers:]
     else:
         raise
     return negatives
