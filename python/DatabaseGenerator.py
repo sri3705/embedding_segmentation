@@ -83,17 +83,22 @@ def createJHMDBParallel(db_settings, logger):
                     segmentor_list.append((i, segmentor))
                     # segmentor_list.append((i, MySegmentation(orig_path.format(d)+frame_format, seg_path.format(d,level)+frame_format, annotator)))
                 # parallelProcess = lambda pair: pair[1].processNewFrame(pair[0]) #pair = (frame_number, segment)
-                from multiprocessing import Pool
                 print 'frame number:', frame
-                print 'create pool'
-                pool = Pool(4)
-                print 'defining function'
-                        # pair[1].processNewFrame(pair[0]) #pair = (frame_number, segment)
                 s = time.time()
                 print 'parallelizing begins', 'Elapsed time:', time.time()-s
-                parallelized_segmentor_list = pool.map(parallelProcess, segmentor_list)
-                pool.close()
-                pool.join()
+                parallel = True
+                if parallel:
+                    from multiprocessing import Pool
+                    print 'create pool'
+                    pool = Pool(6)
+                    print 'defining function'
+                    parallelized_segmentor_list = pool.map(parallelProcess, segmentor_list)
+                    pool.close()
+                    pool.join()
+                else:
+                    parallelized_segmentor_list = []
+                    for segment_frame_chunk_small_bad in segmentor_list:
+                        parallelized_segmentor_list.append(parallelProcess(segment_frame_chunk_small_bad))
                 del segmentor_list
                 # for segg in parallelized_segmentor_list:
                     # segg.processNewFramePar(i+1)

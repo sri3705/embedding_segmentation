@@ -47,6 +47,7 @@ def createVSB100Database(data, db_settings, logger):
         neighbor_features[s_idx:e_idx] = features[database_negative_indices[:,neg]][...]
 
     database['negative'] = neighbor_features
+    database['data_weights'] = np.ones((neighbor_features.shape[0], db_settings['inner_product_output']))
     print 'negative done'
     database.close()
 

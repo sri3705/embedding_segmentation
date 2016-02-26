@@ -17,6 +17,7 @@ class FeatureType(Enum):
     CLR_HOF = 5
     HOF = 6
     FCN = 7
+    CLR = 8
     #DEEP = 3
 
 class Segmentation(object):

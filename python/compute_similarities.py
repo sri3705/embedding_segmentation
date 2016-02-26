@@ -7,7 +7,6 @@ from optparse import OptionParser
 parser = OptionParser()
 parser.add_option('-e', '--expid', dest='exp_id', default='-1')
 parser.add_option('-l', '--layer', dest='layer', default='inner_product_target')
-(options, args) = parser.parse_args()
 
 def getVSB100Representation(conf, solver):
     db_settings = conf.db_settings
@@ -46,6 +45,7 @@ def getweights(conf, solver):
     return getips(conf, solver, superpixels_num)
 
 def getips(conf, net, superpixels_num, layer='inner_product_target'):
+    (options, args) = parser.parse_args()
     layer = options.layer
     data = net.blobs[layer].data
     #data = net.blobs['InnerProduct1'].data
@@ -90,8 +90,6 @@ def getRepresentations(conf, net, superpixels_num, layer='inner_product_target')
         negative_numbers = 1
     #for i in xrange(superpixels_num*negative_numbers):
     for i in xrange(superpixels_num):
-=======
-    for i in xrange(superpixels_num):
         if i%1000==1:
             print i,'/',superpixels_num
         net.forward()
@@ -117,7 +115,6 @@ def getRepresentations_old(conf, net, superpixels_num):
     except:
         negative_numbers = 1
     for i in xrange(superpixels_num*negative_numbers):
->>>>>>> upstream/master
         if i%1000==1:
             print i
         net.forward()
@@ -143,6 +140,7 @@ def getLastAddedFile(path):
     return files[-2]
 
 def computeSimilarities(config_id):
+    (options, args) = parser.parse_args()
     conf = getConfigs(config_id)
     snapshot_path = conf.solver['snapshot_prefix']
     caffemodel_path = getLastAddedFile(snapshot_path)
@@ -180,4 +178,5 @@ def computeSimilarities(config_id):
         savemat(conf.experiments_path+'/similarities.mat', {'similarities':similarities})
 
 if __name__ == '__main__':
+    (options, args) = parser.parse_args()
     computeSimilarities(int(options.exp_id))

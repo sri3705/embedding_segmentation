@@ -144,9 +144,13 @@ class HistogramSupervoxel(Supervoxel):
 
 
     def _initializeHistogram(self):
-        self.R_hist = [0 for i in xrange(256)]
-        self.G_hist = [0 for i in xrange(256)]
-        self.B_hist = [0 for i in xrange(256)]
+        # self.R_hist = [0 for i in xrange(256)]
+        # self.G_hist = [0 for i in xrange(256)]
+        # self.B_hist = [0 for i in xrange(256)]
+
+        self.R_hist = np.zeros((1,256), dtype=np.float32) #[0 for i in xrange(256)]
+        self.G_hist = np.zeros((1,256), dtype=np.float32) #[0 for i in xrange(256)]
+        self.B_hist = np.zeros((1,256), dtype=np.float32) #[0 for i in xrange(256)]
 
     def _initializeFlow(self):
         self.ch1_hist = np.zeros((1,256), dtype=np.float32) #[0 for i in xrange(256)]
@@ -167,17 +171,20 @@ class HistogramSupervoxel(Supervoxel):
         self.fcn = np.add(self.fcn, supervoxel.fcn)
 
     def _updateHistogram(self, color):
-        self.R_hist[color[0]] += 1
-        self.G_hist[color[1]] += 1
-        self.B_hist[color[2]] += 1
+        # self.R_hist[color[0]] += 1
+        # self.G_hist[color[1]] += 1
+        # self.B_hist[color[2]] += 1
+        self.R_hist[0,color[0]] += 1
+        self.G_hist[0,color[1]] += 1
+        self.B_hist[0,color[2]] += 1
 
     def addVoxel(self, x,y,t, color, label=0):
         super(HistogramSupervoxel, self).addVoxel(x,y,t,color,label)
-        # try:
-            # self._updateHistogram(color)
-        # except:
-            # self._initializeHistogram()
-            # self._updateHistogram(color)
+        try:
+            self._updateHistogram(color)
+        except:
+            self._initializeHistogram()
+            self._updateHistogram(color)
 
     def addOpticalFlow(self, flow):
         try:
@@ -203,20 +210,37 @@ class HistogramSupervoxel(Supervoxel):
                 # self.fcn[i]+= fcn[i]
 
 
-    def getFeature(self, number_of_bins=256):
+    # def getFeature(self, number_of_bins=256):
+        # bin_width = 256/number_of_bins
+        # bin_num = -1
+        # r_hist = [0 for i in xrange(number_of_bins)]
+        # g_hist = r_hist[:]
+        # b_hist = r_hist[:]
+        # for i in xrange(256):
+            # if i%bin_width == 0:
+                # bin_num+=1
+            # r_hist[bin_num]+=self.R_hist[i]
+            # g_hist[bin_num]+=self.G_hist[i]
+            # b_hist[bin_num]+=self.B_hist[i]
+        # color_histogram = [i*1.0/self.number_of_pixels for i in r_hist+g_hist+b_hist]
+        # return color_histogram
+
+    def getCLR(self, number_of_bins=256):
+        # return np.array(self.getFeature())
         bin_width = 256/number_of_bins
         bin_num = -1
-        r_hist = [0 for i in xrange(number_of_bins)]
-        g_hist = r_hist[:]
-        b_hist = r_hist[:]
+        r_hist = np.zeros((1, number_of_bins))
+        g_hist = np.zeros((1, number_of_bins))
+        b_hist = np.zeros((1, number_of_bins))
         for i in xrange(256):
             if i%bin_width == 0:
                 bin_num+=1
-            r_hist[bin_num]+=self.R_hist[i]
-            g_hist[bin_num]+=self.G_hist[i]
-            b_hist[bin_num]+=self.B_hist[i]
-        color_histogram = [i*1.0/self.number_of_pixels for i in r_hist+g_hist+b_hist]
+            r_hist[0,bin_num]+=self.R_hist[0,i]
+            g_hist[0,bin_num]+=self.G_hist[0,i]
+            b_hist[0,bin_num]+=self.B_hist[0,i]
+        color_histogram = np.concatenate((r_hist, g_hist, b_hist), axis=1) / self.number_of_pixels
         return color_histogram
+
 
     def getFCN(self):
         # return [i*1.0/self.number_of_pixels for i in self.fcn]
@@ -236,19 +260,19 @@ class HistogramSupervoxel(Supervoxel):
 
         return np.concatenate((ch1_hist, ch2_hist), axis=1)/self.number_of_pixels
 
-    def getOpticalFlow(self,optical_flow_bins=256):
-        bin_width = 256/optical_flow_bins
-        bin_num = -1
-        ch1_hist = np.zeros((1, optical_flow_bins))
-        ch2_hist = np.zeros((1, optical_flow_bins))
-        # ch1_hist = [0 for i in xrange(optical_flow_bins)]
-        for i in xrange(256):
-            if i%bin_width == 0:
-                    bin_num+=1
-            ch1_hist[0,bin_num]+=self.ch1_hist[0,i]
-            ch2_hist[0,bin_num]+=self.ch2_hist[0,i]
-
-        return np.concatenate((ch1_hist, ch2_hist), axis=1)/self.number_of_pixels
+#    def getOpticalFlow(self,optical_flow_bins=256):
+#        bin_width = 256/optical_flow_bins
+#        bin_num = -1
+#        ch1_hist = np.zeros((1, optical_flow_bins))
+#        ch2_hist = np.zeros((1, optical_flow_bins))
+#        # ch1_hist = [0 for i in xrange(optical_flow_bins)]
+#        for i in xrange(256):
+#            if i%bin_width == 0:
+#                    bin_num+=1
+#            ch1_hist[0,bin_num]+=self.ch1_hist[0,i]
+#            ch2_hist[0,bin_num]+=self.ch2_hist[0,i]
+#
+#        return np.concatenate((ch1_hist, ch2_hist), axis=1)/self.number_of_pixels
 
 
 

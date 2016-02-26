@@ -36,8 +36,8 @@ class Config:
         self.model = {
             'batch_size':    	64,
             'number_of_neighbors':    8, #number of neighbors around the target superpixel
-            'number_of_negatives':  20,
-            'inner_product_output':    128, #2*(3*256+192),
+            'number_of_negatives':  8,
+            'inner_product_output':    256, #2*(3*256+192),
             'weight_lr_mult':    1,
             'weight_decay_mult':    1,
             'b_lr_mult':    	2,
@@ -45,7 +45,7 @@ class Config:
             'model_prototxt_path':    self.experiments_path+'/model.prototxt',
             'test_prototxt_path':    self.experiments_path+'/test.prototxt',
             'database_list_path':    self.experiments_path+'/database_list.txt',
-            'feature_type':    	[FeatureType.HOF]#FeatureType.COLOR_HISTOGRAM#FeatureType.FCN,
+            'feature_type':    	[FeatureType.FCN]#FeatureType.COLOR_HISTOGRAM#
         }
 
         self.solver = {
@@ -59,12 +59,12 @@ class Config:
             'test_iter':        1,
             'snapshot':        2000,
             'lr_policy':         "step",
-            'stepsize':        400,
+            'stepsize':        2000,
             'snapshot_prefix':    self.experiments_path+'/snapshot/',
             'net':    		self.model['test_prototxt_path'],
             '_train_net':    	self.model['model_prototxt_path'],
             '_test_nets':    	self.model['test_prototxt_path'],
-            'max_iter':    	10000,
+            'max_iter':    	20000,
             '_train_interval':    500,
             '_termination_threshold':0.0004,
             '_solver_prototxt_path':    self.experiments_path+'/solver.prototxt',
@@ -89,7 +89,6 @@ class Config:
             'level':    		8,
             'video_name':    {},
             'frame':    		21,
-            'action_name':    	['arctic_kayak'] if action_name is None else [action_name],# ['vw_commercial'], #['pour'],
             'frame_format':    		self.frame_format,
             'number_of_negatives':  self.model['number_of_negatives'],
             'number_of_neighbors':  self.model['number_of_neighbors'],
