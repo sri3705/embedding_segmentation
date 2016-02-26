@@ -134,7 +134,7 @@ class Config:
             'database_path':    	self.experiments_path+ '/{level:02d}.h5',
             # 'pickle_path':    		'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/pickle/{action_name}/{video_name}/{level:02d}.p',
             'pickle_path':    		'/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/{level:02d}.p',
-            'pixellabelledlevelvideo_path':   '/cs/vml2/smuralid/projects/eccv16/datasets/{action_name}/pixellabelledlevelvideo_{level:02d}.mat',
+            'pixellabelledlevelvideo_path':   '/cs/vml2/smuralid/projects/eccv16/datasets/files/{action_name}/pixellabelledlevelvideo_{level:02d}.mat',
             'voxellabelledlevelvideo_path':   '/cs/vml2/smuralid/projects/eccv16/datasets/files/{action_name}/voxellabelledlevelvideo_{level:02d}.mat',
             'test_database_list_path':    self.experiments_path+'/database_list_{name}.txt',
             'database_list_path':    	self.model['database_list_path'],
