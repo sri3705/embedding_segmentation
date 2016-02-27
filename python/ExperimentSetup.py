@@ -24,6 +24,9 @@ parser.add_option('-A', '--negatives', dest='A', default=None, type="int")
 parser.add_option('-S', '--stepsize', dest='S', default=None, type="int")
 parser.add_option('-o', '--innerprod', dest='o', default=None, type="int")
 parser.add_option('-F', '--features', dest='F', default=None, help='feature type')
+parser.add_option('-m', '--model', dest='m', action="store_true", default=False)
+parser.add_option('-l', '--level', dest='l', default=None)
+parser.add_option('-L', '--baselr', dest='L', default=None)
 (options, args) = parser.parse_args()
 
 
@@ -123,9 +126,10 @@ if __name__=='__main__':
         'number_of_negatives': options.A, 'inner_product_output': options.o, \
         'feature_type': options.F}
 
-    solver = {'stepsize': options.S}
-    args = {'model': model, 'solver': solver}
-    print args
+    db_args = {'level': options.l}
+
+    solver = {'stepsize': options.S, 'base_lr':options.L}
+    args = {'model': model, 'solver': solver, 'db_args': db_args}
     for arg_i in args.keys():
         for arg_key in args[arg_i].keys():
             if args[arg_i][arg_key] is None:

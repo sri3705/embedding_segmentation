@@ -11,7 +11,7 @@ def getNegatives(method, param, neighbors_all, negative_numbers, number_of_neigh
         negatives = neighbors_negatives[-(start+negative_numbers):-start]
     elif method == 'random':
         import random
-        negatives = random.sample(neighbors_negatives[start+negative_numbers:]
+        negatives = random.sample(neighbors_negatives[start+negative_numbers:])
     else:
         raise
     return negatives

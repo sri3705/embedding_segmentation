@@ -44,6 +44,10 @@ class Config:
             self.solver_args = self.args['solver']
         except:
             self.solver_args = {}
+        try:
+            self.db_args = self.args['db_args']
+        except:
+            self.db_args = {}
 
         self.model = {
             'batch_size':    	64,
@@ -51,7 +55,7 @@ class Config:
             'number_of_negatives':  8,
             'negative_selector_method': 'close',
             'negative_selector_param': 4*8,
-            'inner_product_output':   64, #2*(3*256+192),
+            'inner_product_output':   256, #2*(3*256+192),
             'inner_product_output_duplicate':   64, #2*(3*256+192),
             'weight_lr_mult':    1,
             'weight_decay_mult':    1,
@@ -101,6 +105,9 @@ class Config:
         self.results_path = self.experiments_path+'/results.txt'
         db_settings = getattr(self, '__' + self.db + '__')
         self.db_settings = db_settings(action_name)
+
+        for db_key in self.db_args.keys():
+            self.db_settings[db_key] = self.db_args[db_key]
         # old version: (but why?)
         #self.db_settings = {
     	#	'jhmdb': self.__jhmdb__(),
@@ -114,7 +121,7 @@ class Config:
             'action_name':    	['rock_climbing'] if action_name is None else [action_name],# ['vw_commercial'], #['pour'],
             'level':    		8,
             'video_name':    {},
-            'frame':    		21,
+            'frame':    		None,
             'frame_format':    		self.frame_format,
             'number_of_negatives':  self.model['number_of_negatives'],
             'number_of_neighbors':  self.model['number_of_neighbors'],
@@ -138,8 +145,8 @@ class Config:
             'database_path':    	self.experiments_path+ '/{level:02d}.h5',
             # 'pickle_path':    		'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/pickle/{action_name}/{video_name}/{level:02d}.p',
             'pickle_path':    		'/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/{level:02d}.p',
-            'pixellabelledlevelvideo_path':   '/cs/vml2/smuralid/projects/eccv16/datasets/files/{action_name}/pixellabelledlevelvideo_{level:02d}.mat',
-            'voxellabelledlevelvideo_path':   '/cs/vml2/smuralid/projects/eccv16/datasets/files/{action_name}/voxellabelledlevelvideo_{level:02d}.mat',
+            'pixellabelledlevelvideo_path':   '/cs/vml2/mkhodaba/datasets/VSB100/files/{action_name}/pixellabelledlevelvideo_{level:02d}.mat',
+            'voxellabelledlevelvideo_path':   '/cs/vml2/mkhodaba/datasets/VSB100/files/{action_name}/voxellabelledlevelvideo_{level:02d}.mat',
             'test_database_list_path':    self.experiments_path+'/database_list_{name}.txt',
             'database_list_path':    	self.model['database_list_path'],
             'feature_type':    		self.model['feature_type'],

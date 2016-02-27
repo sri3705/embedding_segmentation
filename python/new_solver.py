@@ -1,3 +1,5 @@
+import os
+os.environ['GLOG_minloglevel'] = '1'
 import caffe
 from numpy import zeros
 import numpy as np

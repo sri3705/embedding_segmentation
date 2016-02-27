@@ -1,6 +1,8 @@
 from scipy.io import savemat, loadmat
 from configs import *
 import numpy as np
+import os
+os.environ['GLOG_minloglevel'] = '1'
 import caffe, os, glob, sys
 from optparse import OptionParser
 
@@ -39,9 +41,10 @@ def getweights(conf, solver):
     # mat = loadmat('/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/pickle/pour1.mat');
     path = db_settings['voxellabelledlevelvideo_path'].format(action_name=action[0], video_name=video_name[action[0]][0], level=level)
     print path
-    mat = loadmat(path)
+    db_list = [x.split('\n')[0] for x in open(conf.model['database_list_path'])][0]
+    import h5py
+    superpixels_num = h5py.File(db_list)['target'].shape[0]
     # pickle_path =
-    superpixels_num = mat['total_number_of_supervoxels']
     return getips(conf, solver, superpixels_num)
 
 def getips(conf, net, superpixels_num, layer='inner_product_target'):
@@ -55,7 +58,7 @@ def getips(conf, net, superpixels_num, layer='inner_product_target'):
     except:
         negative_numbers = 1
     reps = np.zeros((superpixels_num*negative_numbers, feature_len))
-    for i in xrange(superpixels_num*negative_numbers):
+    for i in xrange(superpixels_num):
         if i%1000==1:
             print i
         net.forward()
@@ -147,7 +150,7 @@ def computeSimilarities(config_id):
     caffe.set_mode_gpu()
     db_settings = conf.db_settings
     test_model_path = conf.model['test_prototxt_path']
-    db_list = [x.split('\n')[0] for x in open(conf.model['database_list_path'])]
+    db_list = [x.split('\n')[0] for x in open(conf.model['database_list_path'])][0]
     test_model =  caffe.Net(test_model_path, caffemodel_path, caffe.TEST)
     print "last snapshot is:", caffemodel_path
     print 'Experiment number:', conf.experiment_number
@@ -161,19 +164,18 @@ def computeSimilarities(config_id):
             representations = getweights(conf, test_model)
         else:
             representations = getJHMDBRepresentations(conf, test_model)
+            similarities = computeDistanceMatrix(representations)
+            print representations[:10, :] #'creating model'
     else:
         raise
-    similarities = computeDistanceMatrix(representations)
-    print representations[:10, :] #'creating model'
     if options.layer == 'weights':
         configs = getConfigs(config_id)
         count = 0
-        for x in db_list:
-            h5_f = h5py.File(x, 'r+')
-            n_data = h5_f['data_weights'].shape[0]
-            h5_f['data_weights'].write_direct(representations[count:n_data])
-            count += n_data
-            h5_f.close()
+        h5_f = h5py.File(db_list, 'r+')
+        n_data = h5_f['data_weights'].shape[0]
+        h5_f['data_weights'].write_direct(representations[count:n_data])
+        count += n_data
+        h5_f.close()
     else:
         savemat(conf.experiments_path+'/similarities.mat', {'similarities':similarities})
 
