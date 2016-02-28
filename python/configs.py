@@ -5,15 +5,15 @@ import cPickle as pickle
 from Segmentation import *
 
 class Config:
-    def __init__(self, experiment_number=None, comment=None, action_name=None):
-        # self.experiments_root = '/cs/vml2/mkhodaba/cvpr16/expriments/'
+    def __init__(self, experiment_number=None, comment=None, action_name=None, args=None):
         self.experiments_root = '/local-scratch/expriments/'
         # self.visualization_path = '/cs/vml2/smuralid/projects/embedding_segmentation/python/Visualization/'
         self.comment = comment
+        self.args=args
         if not experiment_number:
-            self.__create_config__(action_name)
+            self.__create_config__(action_name, args)
 
-    def __create_config__(self, action_name=None):
+    def __create_config__(self, action_name=None, args=None):
         self.frame_format = '{0:05d}.ppm'
         vals = [0]
         for x in getDirs(self.experiments_root):
@@ -35,6 +35,20 @@ class Config:
         self.log_type = LogType.FILE
         # self.db = 'vsb100' # self.db = 'jhmdb' or 'vsb100'
         self.db = 'jhmdb'
+        print self.args
+        try:
+            self.model_args = self.args['model']
+        except:
+            self.model_args = {}
+        try:
+            self.solver_args = self.args['solver']
+        except:
+            self.solver_args = {}
+        try:
+            self.db_args = self.args['db_args']
+        except:
+            self.db_args = {}
+
         self.model = {
             'batch_size':    	128,
             'number_of_neighbors':    12, #number of neighbors around the target superpixel
@@ -54,6 +68,12 @@ class Config:
             # 'feature_type':    	[FeatureType.FCN, FeatureType.HOF]
         }
 
+        for model_key in self.model_args.keys():
+            self.model[model_key] = self.model_args[model_key]
+
+
+
+
         self.solver = {
             'weight_decay':    	0.00001,
             'base_lr':    	    0.01,
@@ -61,7 +81,7 @@ class Config:
             'gamma':    	    0.8,
             'power':    	    0.75,
             'display':    	    500,
-            'test_interval':    100000,
+            'test_interval':    1000,
             'test_iter':        1,
             'snapshot':        2000,
             'lr_policy':         "step",
@@ -70,17 +90,24 @@ class Config:
             'net':    		self.model['test_prototxt_path'],
             '_train_net':    	self.model['model_prototxt_path'],
             '_test_nets':    	self.model['test_prototxt_path'],
-            'max_iter':    	10000,
+            'max_iter':    	20000,
             '_train_interval':    500,
             '_termination_threshold':0.0004,
             '_solver_prototxt_path':    self.experiments_path+'/solver.prototxt',
             '_model_prototxt_path':    self.model['model_prototxt_path'],
             '_solver_log_path':    self.experiments_path+'/solver.log',
         }
+
+        for solver_key in self.solver_args.keys():
+            self.solver[solver_key] = self.solver_args[solver_key]
+
         mkdirs(self.solver['snapshot_prefix'])
         self.results_path = self.experiments_path+'/results.txt'
         db_settings = getattr(self, '__' + self.db + '__')
         self.db_settings = db_settings(action_name)
+
+        for db_key in self.db_args.keys():
+            self.db_settings[db_key] = self.db_args[db_key]
         # old version: (but why?)
         #self.db_settings = {
     	#	'jhmdb': self.__jhmdb__(),
@@ -91,15 +118,15 @@ class Config:
     def __jhmdb__(self, action_name=None):
         jhmdb = {
             'db':    			'jhmdb',
-            'action_name':    	['vw_commercial'] if action_name is None else [action_name],# ['vw_commercial'], #['pour'],
-            'level':    	8,
-            'video_name':    {},	
-            # 'starting_frame':   0,
-            'frame':    		None, #if you set frame to None it will run on all the frames in orig_path folder
+            'action_name':    	['rock_climbing'] if action_name is None else [action_name],# ['vw_commercial'], #['pour'],
+            'level':    		8,
+            'video_name':    {},
+            'frame':    		None,
             'frame_format':    		self.frame_format,
             'number_of_negatives':  self.model['number_of_negatives'],
-            'number_of_neighbors':    	self.model['number_of_neighbors'],
+            'number_of_neighbors':  self.model['number_of_neighbors'],
             'root_path':    		'/cs/vml3/mkhodaba/{action_name}/',
+            'inner_product_output': self.model['inner_product_output'],
             'orig_path':    		'/cs/vml2/mkhodaba/datasets/VSB100/Test/{action_name}/ppm/',
             # 'annotation_path':    	'/cs/vml3/mkhodaba/cvpr16/dataset/{action_name}/{video_name}/puppet_mask.mat',
             'annotation_path':    	'/cs/vml2/mkhodaba/datasets/VSB100/files/{action_name}/puppet_mask.mat',
@@ -109,10 +136,14 @@ class Config:
             'segmented_path':    	'/local-scratch/segmented_frames/{action_name}/{level:02d}/',  #+frame_format,
             'optical_flow_path':    	'/cs/vml2/mkhodaba/datasets/VSB100/Test_flow/{action_name}/',
             'fcn_path':                 '/cs/vml2/smuralid/projects/eccv16/python/preprocessing/fcn/Test/{action_name}/',
+            #'features_path':     '/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/features/{action_name}/{video_name}/features.txt',
+            'output_path':          self.experiments_path + 'indices.mat',#+frame_format
+            #'features_path':     	'/cs/vml2/smuralid/projects/eccv16/datasets/files/{action_name}/{feature_name}_{level}.npz',
             'features_path':     	'/cs/vml2/mkhodaba/datasets/VSB100/files/{action_name}/{feature_name}_{level}.npz',
             'output_path':    		self.experiments_path + 'indices.mat',#+frame_format
             'pickle_path':            '/cs/vml2/mkhodaba/datasets/VSB100/files/{action_name}/{level:02d}.p',
             'database_path':        self.experiments_path+'/{level:02d}.h5',
+            'pixellabelledlevelvideo_path':   '/cs/vml2/mkhodaba/datasets/VSB100/files/{action_name}/pixellabelledlevelvideo_{level:02d}.mat',
             'pixellabelledlevelvideo_path':   '/cs/vml2/mkhodaba/datasets/VSB100/files/{action_name}/pixellabelledlevelvideo_{level:02d}.mat',
             'voxellabelledlevelvideo_path':   '/cs/vml2/mkhodaba/datasets/VSB100/files/{action_name}/voxellabelledlevelvideo_{level:02d}.mat',
             'test_database_list_path':    self.experiments_path+'/database_list_{name}.txt',
@@ -126,7 +157,7 @@ class Config:
             print 'This video has {} frames', jhmdb['frame']
         print 'action_name', jhmdb['action_name']
         for action in jhmdb['action_name']:
-            jhmdb['video_name'][action] = ['b1'] 
+            jhmdb['video_name'][action] = ['b1']
         return jhmdb
 
 
@@ -187,15 +218,14 @@ class Config:
     	#print s
     #	return s
 
-def getConfigs(experiment_num=None, comment=None, action_name=None):
-    conf = Config(experiment_num, comment, action_name)
+def getConfigs(experiment_num=None, comment=None, action_name=None, args=None):
+    conf = Config(experiment_num, comment, action_name, args=args)
     vals = [0]
     for x in getDirs(conf.experiments_root):
         try:
             vals.append(int(x))
         except ValueError:
             vals.append(int(x.split('-')[0]))
-
     if experiment_num is not None:
     	if experiment_num == -1:
             experiment_num = max(vals)

@@ -10,7 +10,7 @@ from VSBDatabaseGenerator import *
 
 def createDatabase(db_name, db_settings, logger):
     if db_name == 'jhmdb':
-        # createJHMDB(db_settings, logger)
+        #createJHMDB(db_settings, logger)
         createJHMDBParallel(db_settings, logger)
     elif db_name == 'ucf_sports':
         createUCFSports(db_settings, logger)
@@ -31,7 +31,7 @@ def _scale(y):
         y = np.array(y)
         y = z.fit_transform(y)
         return y.tolist()
-    
+
 def createJHMDBParallel(db_settings, logger):
     frame_format = db_settings['frame_format']
     action_name = db_settings['action_name']
@@ -51,7 +51,7 @@ def createJHMDBParallel(db_settings, logger):
     labelledlevelvideo_path = db_settings['voxellabelledlevelvideo_path']
     optical_flow_path = db_settings['optical_flow_path']
     output_path = db_settings['output_path']
-    print 'output_path is:',output_path 
+    print 'output_path is:',output_path
     compute_segment = db_settings['compute_segment']
     #TODO: maybe we should save them segarately
     #TODO: write a merge segment function?
@@ -86,7 +86,7 @@ def createJHMDBParallel(db_settings, logger):
                 print 'frame number:', frame
                 s = time.time()
                 print 'parallelizing begins', 'Elapsed time:', time.time()-s
-                parallel = True 
+                parallel = True
                 if parallel:
                     from multiprocessing import Pool
                     print 'create pool'
@@ -104,10 +104,11 @@ def createJHMDBParallel(db_settings, logger):
                 # for segg in parallelized_segmentor_list:
                     # segg.processNewFramePar(i+1)
                 print 'Parallelizing DONE.', 'Elapsed time: ', time.time()-s
-                
+
                 print 'Merging begins'
                 s = time.time()
                 segmentor = parallelized_segmentor_list[-1]
+                print len(parallelized_segmentor_list)
                 for i in xrange(len(parallelized_segmentor_list)-1):
                     try:
                         segmentor.merge(parallelized_segmentor_list[i])
@@ -123,8 +124,8 @@ def createJHMDBParallel(db_settings, logger):
                 segmentor.doneProcessing()
                 getFeatFrom = lambda sv, feat_name: getattr(sv, 'get%s' % feat_name)()
                 logger.log("Total number of supervoxels: {0}".format(len(segmentor.supervoxels)))
-                data = {} 
-                for feat_type in feature_type: 
+                data = {}
+                for feat_type in feature_type:
                     feature_name = feat_type.name
                     feature_len = getFeatFrom(segmentor.supervoxels_list[0], feature_name).shape[1]
                     features = np.zeros((len(segmentor.supervoxels_list), feature_len))
@@ -133,7 +134,7 @@ def createJHMDBParallel(db_settings, logger):
                         if feature_name == 'FCN':
                             features[i] = _scale(features[i])
                     data[feature_name] = features
-                    # np.savez(features_path.format(action_name=action_name, feature_name=feature_name), **{feature_name:features}) 
+                    # np.savez(features_path.format(action_name=action_name, feature_name=feature_name), **{feature_name:features})
                 centers = np.zeros((len(segmentor.supervoxels), 3))
                 colors = np.zeros((len(segmentor.supervoxels), 3), dtype=np.int8)
                 for i, sv in enumerate(segmentor.supervoxels_list):
@@ -144,7 +145,7 @@ def createJHMDBParallel(db_settings, logger):
                 del segmentor
                 logger.log('Saving data')
                 s = time.time()
-                np.savez(features_path.format(action_name=action, feature_name='features', level=level), **data) 
+                np.savez(features_path.format(action_name=action, feature_name='features', level=level), **data)
                 # logger.log('*** Pickling ***')
                 # s = time.time()
                 # logger.log('Elapsed time: {0}'.format(time.time()-s))
@@ -155,12 +156,12 @@ def createJHMDBParallel(db_settings, logger):
             else: # Don't compute segments
                 logger.log('No need to compute segments')
                 logger.log('loading features')
-                data = np.load(features_path.format(action_name=action, feature_name='features',level=level))
+                data = np.load(features_path.format(action_name=action, feature_name='features', level=level))
                 # segmentor = pickle.load(open(pickle_path.format(action_name=action, video_name=video, level=level), 'r'))
                 # segmentor.output_path = output_path
                 # segmentor.__class__ = MySegmentation
 
-            createVSB100Database(data, db_settings, logger) 
+            createVSB100Database(data, db_settings, logger)
             logger.log("Segment {0} Done!\n".format(action))
     write_db_list(db_settings, logger)
     logger.log('done!')
@@ -185,7 +186,7 @@ def createJHMDBParallel_old(db_settings, logger):
     labelledlevelvideo_path = db_settings['voxellabelledlevelvideo_path']
     optical_flow_path = db_settings['optical_flow_path']
     output_path = db_settings['output_path']
-    print 'output_path is:',output_path 
+    print 'output_path is:',output_path
     compute_segment = db_settings['compute_segment']
     #TODO: maybe we should save them segarately
     #TODO: write a merge segment function?
@@ -230,7 +231,7 @@ def createJHMDBParallel_old(db_settings, logger):
                 # for segg in parallelized_segmentor_list:
                     # segg.processNewFramePar(i+1)
                 print 'Parallelizing DONE.', 'Elapsed time: ', time.time()-s
-                
+
                 print 'Merging begins'
                 s = time.time()
                 segmentor = parallelized_segmentor_list[-1]
@@ -265,8 +266,10 @@ def createJHMDBParallel_old(db_settings, logger):
             db_path = database_path.format(action_name=action, video_name=video, level=level)
             database = DB(db_path)
             features = segmentor.getFeatures(neighbor_num,feature_type=feature_type)
+            n_data = features['target'].shape[0]
             for name, data in features.iteritems():
                 database.save(data, name)
+            database.save(np.ones((n_data, db_settings['inner_product_output'])),'data_weights')
             database.close()
             logger.log("Segment {0} Done!\n".format(action))
     write_db_list(db_settings, logger)
@@ -340,6 +343,7 @@ def createJHMDB(db_settings, logger):
             db_path = database_path.format(action_name=action, video_name=video, level=level)
             database = DB(db_path)
             features = segmentor.getFeatures(neighbor_num,feature_type=feature_type)
+            n_data = features.shape[0]
             #if type(feature_type) is list:
             #    feat_size = features[-1]
             #    features = features[0]
@@ -353,6 +357,7 @@ def createJHMDB(db_settings, logger):
             #        database.save(data, name)
             for name, data in features.iteritems():
                 database.save(data, name)
+            database.save(np.ones((n_data)),'data_weights')
             database.close()
             logger.log("Segment {0} Done!\n".format(action))
     write_db_list(db_settings, logger)

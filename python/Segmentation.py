@@ -57,7 +57,7 @@ class Segmentation(object):
 
     def deleteData(self):
         del self.frame_to_voxels
-        del self.__cKDTree__ 
+        del self.__cKDTree__
         del self.supervoxels
         del self.annotator
         del self.supervoxels_list
@@ -234,16 +234,17 @@ class Segmentation(object):
 
     def createVoxelLabelledlevelvideoData(self):
         #TODO:
-        # self.current_frame = 22
+        # self.current_frame = 2
         print "[Segmentation::VoxelLabelledlevelvideoData]  self.current_frame = {}".format(self.current_frame)
         segmented_path = self.segmented_path.format(self.current_frame-1)
         orig_img = MyImage(segmented_path)
         width, height = orig_img.size
-        mapped = np.zeros(( height, width, self.current_frame), dtype=np.int32)
+        mapped = np.zeros(( height, width, self.current_frame), dtype=np.float32)
         self.colors_to_id = {}
             # 1-based
         for i, sv in enumerate(self.supervoxels_list):
             self.colors_to_id[sv.ID] = i+1
+        print "%%%%%%%% frames:", self.current_frame-1
         for f in xrange(self.current_frame):
             img = MyImage(self.segmented_path.format(f+1))
             for h in xrange(height):
@@ -466,8 +467,8 @@ class MySegmentation(Segmentation):
             #TODO: Implement Hard negatives. Maybe among neighbors of the neighbors?
             # Or maybe ask for K+n neighbors and the last n ones could be candidate for hard negatives
             #negatives = random.sample(supervoxels, negative_numbers) #Sample one supervoxel as negative
-            negatives = random.sample(neighbors_, negative_numbers) #Sample one supervoxel as negative
-
+            #negatives = random.sample(neighbors_, negative_numbers) #Sample one supervoxel as negative
+            negatives = neighbors_[:negative_numbers]
             #neighbors.remove(sv)
 
             #when everything is done we put back neighbors to the set
@@ -496,7 +497,7 @@ class MySegmentation(Segmentation):
         assert k >= 2, 'K < 2: At least 2 neighbors is needed'
         #self.features -> dictionary {'FCN': np.arary, 'HOF':np.array}
         #self.centers
-    
+
         #self.getKNearestSupervoxelsOf_indices( int i, int k)
         #i -> index of supervoxel
         supervoxels = set(self.supervoxels_list)
@@ -537,10 +538,10 @@ class MySegmentation(Segmentation):
                 new_idx = idx+neg
                 data['target'][new_idx][...] = data['target'][idx][...]
                 for j, nei in enumerate(neighbors):
-                    data['neighbor{0}'.format(j)][new_idx][...] = data['neighbor{0}'.format(j)][idx][...] 
+                    data['neighbor{0}'.format(j)][new_idx][...] = data['neighbor{0}'.format(j)][idx][...]
                 data['negative'][new_idx][...] = np.concatenate((self._scale(negatives[neg].getFCN()), negatives[neg].getOpticalFlow()), axis=1)
         from scipy.io import savemat
-        print self.output_path 
+        print self.output_path
         savemat(self.output_path, {'database_negative_indices':database_negative_indices, 'database_neighbor_indices':database_neighbor_indices})
         print "[Segmentation::_extract_fcn_hof] -- data['target'] shape:", data['target'].shape
         #return [data, [len(self.supervoxels_list[0].getFCN()), len(self.supervoxels_list[0].getOpticalFlow())]]
