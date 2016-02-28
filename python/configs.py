@@ -36,12 +36,12 @@ class Config:
         # self.db = 'vsb100' # self.db = 'jhmdb' or 'vsb100'
         self.db = 'jhmdb'
         self.model = {
-            'batch_size':    	64,
+            'batch_size':    	128,
             'number_of_neighbors':    12, #number of neighbors around the target superpixel
-            'number_of_negatives':  8,
+            'number_of_negatives':  4,
             'negative_selector_method': 'close',
-            'negative_selector_param': 4*8,
-            'inner_product_output':   64, #2*(3*256+192),
+            'negative_selector_param': 1*8,
+            'inner_product_output':   128, #2*(3*256+192),
             'inner_product_output_duplicate':   64, #2*(3*256+192),
             'weight_lr_mult':    1,
             'weight_decay_mult':    1,
@@ -50,7 +50,7 @@ class Config:
             'model_prototxt_path':    self.experiments_path+'/model.prototxt',
             'test_prototxt_path':    self.experiments_path+'/test.prototxt',
             'database_list_path':    self.experiments_path+'/database_list.txt',
-            'feature_type':    	[FeatureType.FCN, FeatureType.HOF, FeatureType.CLR]
+            'feature_type':    	[FeatureType.FCN, FeatureType.HOF], #, FeatureType.CLR]
             # 'feature_type':    	[FeatureType.FCN, FeatureType.HOF]
         }
 
@@ -65,7 +65,7 @@ class Config:
             'test_iter':        1,
             'snapshot':        2000,
             'lr_policy':         "step",
-            'stepsize':        800,
+            'stepsize':        500,
             'snapshot_prefix':    self.experiments_path+'/snapshot/',
             'net':    		self.model['test_prototxt_path'],
             '_train_net':    	self.model['model_prototxt_path'],
@@ -92,7 +92,7 @@ class Config:
         jhmdb = {
             'db':    			'jhmdb',
             'action_name':    	['vw_commercial'] if action_name is None else [action_name],# ['vw_commercial'], #['pour'],
-            'level':    	10,
+            'level':    	8,
             'video_name':    {},	
             # 'starting_frame':   0,
             'frame':    		None, #if you set frame to None it will run on all the frames in orig_path folder
@@ -162,6 +162,7 @@ class Config:
         '''
         dic = {action_name:--, level:--, video_name:--}
         '''
+        print '===== Saving Configs ====='
         pickle.dump(self, open(self.experiments_path+'configs.txt', 'w'))
         with open(self.experiments_path+'configs.readable', 'w') as config_txt:
             import pprint
