@@ -1,7 +1,6 @@
 print "experiment setups initiating ... "
 from configs import *
 print "configs imported"
-from NetworkFactory import *
 print "networkfactory imported"
 from DatabaseGenerator import *
 print "databasegenerator imported"
@@ -16,8 +15,9 @@ parser = OptionParser()
 parser.add_option('-s', '--recompute_features', dest='s', action="store_true", default=False)
 parser.add_option('-f', '--compute-db', dest='f', action="store_true", default=False)
 parser.add_option('-v', '--video', dest='v', default=None)
-parser.add_option('-n', '--net', dest='n', default=None, type="int")
+parser.add_option('-n', '--net', dest='n', default=None, action="store_true", default=False)
 parser.add_option('-c', '--comment', dest='c')
+parser.add_option('-b', '--batch-size', dest='b', default=None, type="int")
 parser.add_option('-b', '--batch-size', dest='b', default=None, type="int")
 parser.add_option('-a', '--neighbors', dest='a', default=None, type="int")
 parser.add_option('-A', '--negatives', dest='A', default=None, type="int")
@@ -29,7 +29,10 @@ parser.add_option('-l', '--level', dest='l', default=None)
 parser.add_option('-L', '--baselr', dest='L', default=None)
 (options, args) = parser.parse_args()
 
-
+if not options.n:
+    from NetworkFactory import *
+else:
+    from NetworkFactory_2stream import *
 
 def labelledlevelvideo_generator(conf):
     # This function gives you the label of SuperPIXELS not supervoxels
@@ -126,7 +129,7 @@ if __name__=='__main__':
         'number_of_negatives': options.A, 'inner_product_output': options.o, \
         'feature_type': options.F}
 
-    db_args = {'level': options.l}
+    db_args = {'level': options.l, 'net': options.net}
 
     solver = {'stepsize': options.S, 'base_lr':options.L}
     args = {'model': model, 'solver': solver, 'db_args': db_args}

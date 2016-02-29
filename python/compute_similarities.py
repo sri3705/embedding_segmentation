@@ -67,7 +67,8 @@ def getips(conf, net, superpixels_num, layer='inner_product_target'):
     from sklearn.preprocessing import MinMaxScaler
     clf = MinMaxScaler()
     reps_slice = clf.fit_transform(reps_slice)
-    reps_slice = np.square(reps_slice)
+    if negative_numbers > 1:
+        reps_slice = np.square(reps_slice)
     #reps_slice[reps_slice<np.mean(reps_slice)] = 0
     for i in xrange(reps_slice.shape[0]):
         reps[i] = reps_slice[i]

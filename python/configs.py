@@ -50,12 +50,12 @@ class Config:
             self.db_args = {}
 
         self.model = {
-            'batch_size':    	64,
+            'batch_size':    	128,
             'number_of_neighbors':    12, #number of neighbors around the target superpixel
-            'number_of_negatives':  8,
+            'number_of_negatives':  4,
             'negative_selector_method': 'close',
-            'negative_selector_param': 4*8,
-            'inner_product_output':   256, #2*(3*256+192),
+            'negative_selector_param': 1*8,
+            'inner_product_output':   128, #2*(3*256+192),
             'inner_product_output_duplicate':   64, #2*(3*256+192),
             'weight_lr_mult':    1,
             'weight_decay_mult':    1,
@@ -85,7 +85,7 @@ class Config:
             'test_iter':        1,
             'snapshot':        2000,
             'lr_policy':         "step",
-            'stepsize':        2000,
+            'stepsize':        500,
             'snapshot_prefix':    self.experiments_path+'/snapshot/',
             'net':    		self.model['test_prototxt_path'],
             '_train_net':    	self.model['model_prototxt_path'],
