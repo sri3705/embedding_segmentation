@@ -22,7 +22,8 @@ def createVSB100Database(data, db_settings, logger):
     k = db_settings['number_of_neighbors']
     colors = data['colors']
     centers = data['centers']
-    level = db_settings['level']
+    level = int(db_settings['level'])
+    output_path = db_settings['output_path']
     database_path = db_settings['database_path'].format(level=level)
     negative_selector_method = db_settings['negative_selector_method']
     negative_selector_param = db_settings['negative_selector_param']
@@ -44,6 +45,8 @@ def createVSB100Database(data, db_settings, logger):
         negatives = getNegatives(negative_selector_method, negative_selector_param, neighbors_all, negative_numbers, k)
         database_negative_indices[i][...] = negatives
         database_neighbor_indices[i][...] = neighbors
+    from scipy.io import savemat
+    savemat(output_path, {'database_negative_indices':database_negative_indices, 'database_neighbor_indices':database_neighbor_indices})
 
     database = h5py.File(database_path, 'w')
     database['target'] = np.tile(features, (negative_numbers, 1))

@@ -39,7 +39,7 @@ def createJHMDBParallel(db_settings, logger):
     annotation_path = db_settings['annotation_path']
     segmented_path = db_settings['segmented_path']
     orig_path = db_settings['orig_path']
-    level = db_settings['level']
+    level = int(db_settings['level'])
     frame = db_settings['frame']
     n_neg = db_settings['number_of_negatives']
     pickle_path = db_settings['pickle_path']
@@ -174,7 +174,7 @@ def createJHMDBParallel_old(db_settings, logger):
     annotation_path = db_settings['annotation_path']
     segmented_path = db_settings['segmented_path']
     orig_path = db_settings['orig_path']
-    level = db_settings['level']
+    level = int(db_settings['level'])
     frame = db_settings['frame']
     n_neg = db_settings['number_of_negatives']
     pickle_path = db_settings['pickle_path']
@@ -437,7 +437,7 @@ def write_db_list(db_settings, logger):
         database_path = db_settings['database_path']
         database_list_path = db_settings['database_list_path']
         test_database_list_path = db_settings['test_database_list_path']
-        level = db_settings['level']
+        level = int(db_settings['level'])
         with open(database_list_path, 'w') as db_list:
             for action in action_name:
                 for i,video in enumerate(video_name[action]):

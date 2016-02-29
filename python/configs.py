@@ -146,6 +146,7 @@ class Config:
             # 'pickle_path':    		'/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/pickle/{action_name}/{video_name}/{level:02d}.p',
             'pickle_path':    		'/cs/vml2/smuralid/projects/eccv16/dataset/{action_name}/{video_name}/{level:02d}.p',
             'pixellabelledlevelvideo_path':   '/cs/vml2/mkhodaba/datasets/VSB100/files/{action_name}/pixellabelledlevelvideo_{level:02d}.mat',
+            'pixellabelledlevelvideo_path':   '/cs/vml2/mkhodaba/datasets/VSB100/files/{action_name}/pixellabelledlevelvideo_{level:02d}.mat',
             'voxellabelledlevelvideo_path':   '/cs/vml2/mkhodaba/datasets/VSB100/files/{action_name}/voxellabelledlevelvideo_{level:02d}.mat',
             'test_database_list_path':    self.experiments_path+'/database_list_{name}.txt',
             'database_list_path':    	self.model['database_list_path'],
@@ -184,7 +185,7 @@ class Config:
             return vsb100
 
     def getPath(self, key):
-        level = self.db_settings['level']
+        level = int(self.db_settings['level'])
         action_name = self.db_settings['action_name'][0]
         video_name = self.db_settings['video_name'][action_name][0]
         path = self.db_settings[key]
@@ -194,6 +195,7 @@ class Config:
         '''
         dic = {action_name:--, level:--, video_name:--}
         '''
+        print '===== Saving Configs ====='
         pickle.dump(self, open(self.experiments_path+'configs.txt', 'w'))
         with open(self.experiments_path+'configs.readable', 'w') as config_txt:
             import pprint
