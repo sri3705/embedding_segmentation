@@ -22,7 +22,7 @@ def createVSB100Database(data, db_settings, logger):
     k = db_settings['number_of_neighbors']
     colors = data['colors']
     centers = data['centers']
-    level = db_settings['level']
+    level = int(db_settings['level'])
     output_path = db_settings['output_path']
     database_path = db_settings['database_path'].format(level=level)
     negative_selector_method = db_settings['negative_selector_method']

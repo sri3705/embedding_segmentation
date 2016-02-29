@@ -85,12 +85,12 @@ class Config:
             'test_iter':        1,
             'snapshot':        2000,
             'lr_policy':         "step",
-            'stepsize':        500,
+            'stepsize':       1500,
             'snapshot_prefix':    self.experiments_path+'/snapshot/',
             'net':    		self.model['test_prototxt_path'],
             '_train_net':    	self.model['model_prototxt_path'],
             '_test_nets':    	self.model['test_prototxt_path'],
-            'max_iter':    	20000,
+            'max_iter':    	40000,
             '_train_interval':    500,
             '_termination_threshold':0.0004,
             '_solver_prototxt_path':    self.experiments_path+'/solver.prototxt',
@@ -183,7 +183,7 @@ class Config:
             return vsb100
 
     def getPath(self, key):
-        level = self.db_settings['level']
+        level = int(self.db_settings['level'])
         action_name = self.db_settings['action_name'][0]
         video_name = self.db_settings['video_name'][action_name][0]
         path = self.db_settings[key]

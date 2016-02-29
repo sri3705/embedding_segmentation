@@ -96,4 +96,4 @@ if options.m == True:
 os.system('python compute_similarities.py -e ' + args)
 cmd = 'matlab -nosplash -nodisplay -r ' + '"' + 'run_all(' + "'" + exp_root + "'" + ',' + "'{0}'".format(conf.db_settings['level']) + ', ' + "'{0}'".format(options.v) + ');exit;' + '"'
 print cmd
-os.system(cmd)
+# os.system(cmd)

@@ -15,4 +15,4 @@ except:
     print conf.experiment_folder_name
 
 # os.system('cd $graph; matlab_sh -r "run_all('{}','{}','{}');exit;"',conf.experiment_folder_name, conf.level, conf.db_settings['action_name'][0])
-os.system('cd $graph && matlab -nodisplay -nosplash -nodesktop -r "run_all(\'{}\',\'{}\',\'{}\');exit;"'.format(conf.experiment_folder_name, conf.db_settings['level'], conf.db_settings['action_name'][0]))
+os.system('matlab -nodisplay -nosplash -nodesktop -r "run_all(\'{}\',\'{}\',\'{}\');exit;"'.format(conf.experiment_folder_name, conf.db_settings['level'], conf.db_settings['action_name'][0]))

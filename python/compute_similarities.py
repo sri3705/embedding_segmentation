@@ -24,7 +24,7 @@ def getJHMDBRepresentations(conf, solver):
     db_settings = conf.db_settings
     action = db_settings['action_name']
     video_name = db_settings['video_name']
-    level = db_settings['level']
+    level = int(db_settings['level'])
     # mat = loadmat('/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/pickle/pour1.mat');
     path = db_settings['voxellabelledlevelvideo_path'].format(action_name=action[0], video_name=video_name[action[0]][0], level=level)
     print path
