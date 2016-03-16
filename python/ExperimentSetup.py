@@ -1,11 +1,6 @@
 print "experiment setups initiating ... "
 from configs import *
 print "configs imported"
-<<<<<<< HEAD
-=======
-from NetworkFactory import *
->>>>>>> upstream/master
-print "networkfactory imported"
 from DatabaseGenerator import *
 print "databasegenerator imported"
 from Logger import *
@@ -16,38 +11,31 @@ from optparse import OptionParser
 print "os, sys  imported"
 
 parser = OptionParser()
-parser.add_option('-s', '--recompute_features', dest='s', action="store_true", default=False)
+parser.add_option('-s', '--re options.Ompute_features', dest='s', action="store_true", default=False)
 parser.add_option('-f', '--compute-db', dest='f', action="store_true", default=False)
 parser.add_option('-v', '--video', dest='v', default=None)
-<<<<<<< HEAD
-parser.add_option('-n', '--net', dest='n', default=None, action="store_true", default=False)
-parser.add_option('-c', '--comment', dest='c')
-parser.add_option('-b', '--batch-size', dest='b', default=None, type="int")
-parser.add_option('-b', '--batch-size', dest='b', default=None, type="int")
-=======
 parser.add_option('-n', '--net', dest='n', default=None, type="int")
 parser.add_option('-c', '--comment', dest='c')
 parser.add_option('-b', '--batch-size', dest='b', default=None, type="int")
->>>>>>> upstream/master
 parser.add_option('-a', '--neighbors', dest='a', default=None, type="int")
 parser.add_option('-A', '--negatives', dest='A', default=None, type="int")
 parser.add_option('-S', '--stepsize', dest='S', default=None, type="int")
 parser.add_option('-o', '--innerprod', dest='o', default=None, type="int")
+parser.add_option('-O', '--innerprod_l1', dest='O', default=None, type="int")
 parser.add_option('-F', '--features', dest='F', default=None, help='feature type')
-parser.add_option('-m', '--model', dest='m', action="store_true", default=False)
-parser.add_option('-l', '--level', dest='l', default=None)
-parser.add_option('-L', '--baselr', dest='L', default=None)
+parser.add_option('-m', '--model', dest='m', default=0, type="int")
+parser.add_option('-l', '--level', dest='l', default=None,type="int")
+parser.add_option('-L', '--baselr', dest='L', default=None, type="float")
+parser.add_option('-N', '--negative_selector_param', dest='N', default=None, type="int")
+parser.add_option('-B', '--bag_size', dest='B', default=None, type="int")
+parser.add_option('-E', '--expname', dest='e', default=None)
 (options, args) = parser.parse_args()
 
-<<<<<<< HEAD
+print "networkfactory imported"
 if not options.n:
     from NetworkFactory import *
 else:
     from NetworkFactory_2stream import *
-=======
-
-
->>>>>>> upstream/master
 
 def labelledlevelvideo_generator(conf):
     # This function gives you the label of SuperPIXELS not supervoxels
@@ -95,9 +83,9 @@ def labelledlevelvideo_generator(conf):
     savemat(out_path, {'labelledlevelvideo':mat, 'numberofsuperpixelsperframe':sups_nums})
 
 
-def setup_experiment(extract_features=False, visualization=False, comment=None, compute_segment=False, action_name=None, args=None):
+def setup_experiment(extract_features=False, visualization=False, comment=None, compute_segment=False, action_name=None, args=None, new_exp=True):
     # need to extract features?
-    config = getConfigs(comment=comment, action_name=action_name, args=args)
+    config = getConfigs(comment=comment, action_name=action_name, args=args, new_exp=new_exp)
     experiment_path = config.experiments_root
     print "Experiment number:", config.experiment_number
     logger = Logger(config.log_type, config.log_path)
@@ -120,9 +108,9 @@ def setup_experiment(extract_features=False, visualization=False, comment=None, 
             config.db_settings['compute_segment'] = True
         else:
             config.db_settings['compute_segment'] = False
-        if not os.path.exists(out_path):
-            print 'labels are not there. Computing labelledlevelvideo_pixels'
-            labelledlevelvideo_generator(config)
+        #if not os.path.exists(out_path):
+         #   print 'labels are not there. Computing labelledlevelvideo_pixels'
+         #   labelledlevelvideo_generator(config)
         createDatabase(config.db, config.db_settings, logger)
         #TODO create the database list
         #TODO: probably in configs need to set how to merge them: for now separately
@@ -132,9 +120,9 @@ def setup_experiment(extract_features=False, visualization=False, comment=None, 
         os.system('cp -f ' + folders[0] + '/*h5 ' + folders[1] + '/')
         write_db_list(config.db_settings, logger)
     logger.close()
-    if not os.path.exists(out_path):
-        print 'labels are not there'
-        labelledlevelvideo_generator(config)
+    #if not os.path.exists(out_path):
+    #    print 'labels are not there'
+    #    labelledlevelvideo_generator(config)
    #TODO save configs
     config.save()
 
@@ -142,9 +130,11 @@ if __name__=='__main__':
 
     model = {'net': options.n, 'batch_size': options.b, 'number_of_neighbors': options.a, \
         'number_of_negatives': options.A, 'inner_product_output': options.o, \
-        'feature_type': options.F}
+        'feature_type': options.F, 'negative_selector_param':options.N, \
+        'bag_size': options.B, 'inner_product_output_l1': options.O,
+        'method': options.m}
 
-    db_args = {'level': options.l, 'net': options.net}
+    db_args = {'level': options.l, 'net': options.n}
 
     solver = {'stepsize': options.S, 'base_lr':options.L}
     args = {'model': model, 'solver': solver, 'db_args': db_args}
@@ -157,7 +147,12 @@ if __name__=='__main__':
     comment = options.c
     action_name = options.v
     compute_segment = options.s
-    setup_experiment(extract_features=extract_features, visualization=False, comment=comment, compute_segment=compute_segment, action_name=action_name, args=args)
+    if options.e is not None:
+        comment = options.e
+        setup_experiment(extract_features=extract_features, visualization=False, comment=comment, compute_segment=compute_segment, action_name=action_name, args=args, new_exp=False)
+    else:
+        setup_experiment(extract_features=extract_features, visualization=False, comment=comment, compute_segment=compute_segment, action_name=action_name, args=args)
+
 
 
 

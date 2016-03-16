@@ -48,6 +48,11 @@ def createJHMDBParallel(db_settings, logger):
     database_list_path = db_settings['database_list_path']
     features_path = db_settings['features_path']
     feature_type = db_settings['feature_type']
+    if type(feature_type) is str:
+        feature_type = getattr(FeatureType, feature_type)
+    print feature_type
+    if (type(feature_type) is list) and type(feature_type[0]) is str:
+        feature_type = map(lambda x: getattr(FeatureType, x), feature_type)
     labelledlevelvideo_path = db_settings['voxellabelledlevelvideo_path']
     optical_flow_path = db_settings['optical_flow_path']
     output_path = db_settings['output_path']

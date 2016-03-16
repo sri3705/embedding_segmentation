@@ -6,7 +6,7 @@ from caffe import NetSpec
 from utils import getFuncArgNames
 
 class Network:
-    def __init__(self, number_of_neighbors=6, inner_product_output=100, weight_lr_mult=1, weight_decay_mult=1, b_lr_mult=2, b_decay_mult=0):
+    def __init__(self, number_of_neighbors=6, inner_product_output=100, weight_lr_mult=1, weight_decay_mult=1, b_lr_mult=2, b_decay_mult=0, inner_product_output_l1=1000):
     	self.number_of_neighbors = number_of_neighbors
     	#self.netP =
     	self.net = NetSpec()
@@ -16,6 +16,7 @@ class Network:
     	self.weight_decay_mult = weight_decay_mult
     	self.b_lr_mult = b_lr_mult
     	self.b_decay_mult = b_decay_mult
+        self.inner_product_output_l1 = inner_product_output_l1
 
     def getInnerProduct(self, input_name, output_name, ID, num_output=None):
     	#TODO What should be the output of this layer?
@@ -46,7 +47,7 @@ class Network:
     		setattr(self.net, 'neighbor{0}'.format(l-1), dataLayer[l])
 
     	#First layer of inner product
-        layer_output = 1000
+        layer_output = self.inner_product_output_l1
     	self.net.inner_product_target_1 = self.getInnerProduct('target', 'inner_product_target_1', 2, num_output=layer_output)
     	self.net.inner_product_negative_1 = self.getInnerProduct('negative', 'inner_product_negative_1', 2, num_output=layer_output)
     	for i in range(0, self.number_of_neighbors):

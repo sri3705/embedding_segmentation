@@ -89,7 +89,7 @@ def buildVoxel2PixelSimilarities(config_id):
     #Load superpixel information (1-based)
     level = int(db_settings['level'])
     video_name = db_settings['action_name'][0]
-    path = '/cs/vml2/mkhodaba/cvpr16/VSB100/VideoProcessingTemp/{0}/vidinfo_{1:02d}.mat'.format(video_name, level)
+    path = '/cs/vml2/smuralid/projects/eccv16/dataset/VSB100/VideoProcessingTemp/{0}/vidinfo_{1:02d}.mat'.format(video_name, level)
     # video_name = 'vw_commercial_21f'
     # path = '/cs/vml2/mkhodaba/cvpr16/VSB100/VideoProcessingTemp/{0}/vidinfo_{1:02d}.mat'.format(video_name, level)
     mat = loadmat(path)
@@ -118,7 +118,6 @@ def buildVoxel2PixelSimilarities(config_id):
     #Do the mapping
     print 'total_superpixels_num', total_superpixels_num
     pixel_to_voxel = [-1 for i in xrange(total_superpixels_num)]
-    exit()
 
     for f in xrange(frames):
         print '[compute_similarities_vox2pix] frame:', f

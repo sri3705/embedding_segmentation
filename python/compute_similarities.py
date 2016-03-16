@@ -1,7 +1,9 @@
 from scipy.io import savemat, loadmat
+from sklearn.metrics.pairwise import pairwise_distances
 from configs import *
 import numpy as np
 import os
+from sklearn.preprocessing import normalize
 os.environ['GLOG_minloglevel'] = '1'
 import caffe, os, glob, sys
 from optparse import OptionParser
@@ -36,6 +38,7 @@ def getJHMDBRepresentations(conf, solver):
 def getweights(conf, solver):
     db_settings = conf.db_settings
     action = db_settings['action_name']
+
     video_name = db_settings['video_name']
     level = db_settings['level']
     # mat = loadmat('/cs/vml2/mkhodaba/cvpr16/datasets/JHMDB/pickle/pour1.mat');
@@ -88,17 +91,23 @@ def getRepresentations(conf, net, superpixels_num, layer='inner_product_target')
     assert data.shape[0] == 1, 'batch size != ? ... this assert is not important'
     feature_len = data.shape[1]
     reps = np.zeros((superpixels_num, feature_len))
+    action = conf.db_settings['action_name'][0]
+    level = conf.db_settings['level']
     try:
         negative_numbers = conf.model['number_of_negatives']
     except:
         negative_numbers = 1
     #for i in xrange(superpixels_num*negative_numbers):
+    distance = np.load(conf.db_settings['features_path'].format(action_name=action, feature_name='features', level=level))['FCN']
+    similarity = 1 - (pairwise_distances(distance)/np.max(distance))
     for i in xrange(superpixels_num):
         if i%1000==1:
             print i,'/',superpixels_num
         net.forward()
         reps[i][...] = net.blobs['inner_product_target'].data
         # print net.blobs['inner_product_target'].data[1:10]
+    #return np.concatenate((reps, distance), axis=1)
+    reps = normalize(reps)
     return reps
 
 #this one works on databases that records of each target are together in the database table!
